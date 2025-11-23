@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sala Giochi</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #2c3e50; color: white; }
+        .card { border: 1px solid #ccc; padding: 10px; margin: 5px; display: inline-block; background: white; color: black; border-radius: 5px; cursor: pointer;}
+        .table-area { background: #27ae60; padding: 20px; min-height: 150px; border-radius: 10px; margin: 20px; }
+        #game-screen { display: none; }
+        .player-area { margin: 20px; border: 1px dashed #fff; padding: 10px; }
+        .active { background-color: #f1c40f; color: black; } /* Evidenzia chi tocca */
+    </style>
+</head>
+<body>
+
+    <div id="lobby-screen">
+        <h1>Benvenuto alla Sala Giochi</h1>
+        <p>Scegli come giocare:</p>
+        <button onclick="joinGame('online')">Gioca Online (1vs1)</button>
+        <button onclick="joinGame('locale')">Gioca in Locale (Passa il telefono)</button>
+    </div>
+
+    <div id="game-screen">
+        <h2>Tavolo da Cirulla</h2>
+        <div id="status-msg">In attesa...</div>
+        
+        <div class="player-area" id="p2-area">
+            <h3>Avversario</h3>
+            <div id="p2-hand"></div>
+        </div>
+
+        <div class="table-area">
+            <h3>Tavolo</h3>
+            <div id="table-cards"></div>
+        </div>
+
+        <div class="player-area" id="p1-area">
+            <h3>Tu (Giocatore 1)</h3>
+            <div id="p1-hand"></div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="client.js"></script>
+</body>
+</html>
