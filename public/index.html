@@ -3,42 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sala Giochi</title>
+    <title>Cirulla Locale Auto</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #2c3e50; color: white; }
-        .card { border: 1px solid #ccc; padding: 10px; margin: 5px; display: inline-block; background: white; color: black; border-radius: 5px; cursor: pointer;}
-        .table-area { background: #27ae60; padding: 20px; min-height: 150px; border-radius: 10px; margin: 20px; }
-        #game-screen { display: none; }
-        .player-area { margin: 20px; border: 1px dashed #fff; padding: 10px; }
-        .active { background-color: #f1c40f; color: black; } /* Evidenzia chi tocca */
+        body { font-family: monospace; text-align: center; background: #222; color: white; user-select: none; }
+        
+        .card { 
+            border: 1px solid #555; width: 50px; height: 80px; margin: 5px; 
+            display: inline-flex; justify-content: center; align-items: center; 
+            background: #fff; color: black; border-radius: 4px; font-weight: bold; 
+            font-size: 14px; position: relative; transition: all 0.3s;
+        }
+        
+        .table-area { background: #27ae60; padding: 20px; border-radius: 5px; margin: 10px 0; min-height: 100px; }
+        .table-card { cursor: pointer; }
+        .selected { border: 3px solid #e74c3c !important; transform: scale(1.1); box-shadow: 0 0 10px #e74c3c; }
+
+        .player-area { border: 1px dashed #444; padding: 10px; margin: 10px 0; position: relative; min-height: 100px; transition: background 0.5s;}
+        
+        .active-turn { color: #f1c40f; text-shadow: 0 0 5px #f1c40f; font-size: 1.2em; }
+
+        /* NASCONDI CARTE */
+        .hidden-hand .card {
+            background: repeating-linear-gradient(45deg, #606dbc, #606dbc 10px, #465298 10px, #465298 20px);
+            color: transparent;
+            cursor: default;
+            border: 1px solid #444;
+        }
+        
+        /* Messaggio di transizione */
+        #transition-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); color: #f1c40f;
+            display: none; justify-content: center; align-items: center;
+            font-size: 2em; z-index: 1000; flex-direction: column;
+        }
     </style>
 </head>
 <body>
 
-    <div id="lobby-screen">
-        <h1>Benvenuto alla Sala Giochi</h1>
-        <p>Scegli come giocare:</p>
-        <button onclick="joinGame('online')">Gioca Online (1vs1)</button>
-        <button onclick="joinGame('locale')">Gioca in Locale (Passa il telefono)</button>
+    <div id="transition-overlay">
+        <div>📱 PASSA IL DISPOSITIVO</div>
+        <div id="next-player-name" style="font-size: 0.6em; margin-top: 20px; color: white;">...</div>
     </div>
 
-    <div id="game-screen">
-        <h2>Tavolo da Cirulla</h2>
-        <div id="status-msg">In attesa...</div>
-        
-        <div class="player-area" id="p2-area">
-            <h3>Avversario</h3>
-            <div id="p2-hand"></div>
+    <div id="lobby-screen">
+        <h1>Cirulla Locale</h1>
+        <button onclick="joinGame('locale')" style="padding: 20px; font-size: 18px; cursor: pointer;">GIOCA IN LOCALE</button>
+    </div>
+
+    <div id="game-screen" style="display:none;">
+        <h2 id="status-msg">In attesa...</h2>
+
+        <div class="player-area" id="area-p2">
+            <h3 id="p2-info">GIOCATORE 2</h3>
+            <div id="p2-hand" class="hidden-hand"></div>
         </div>
 
         <div class="table-area">
-            <h3>Tavolo</h3>
+            <h3>TAVOLO</h3>
             <div id="table-cards"></div>
         </div>
 
-        <div class="player-area" id="p1-area">
-            <h3>Tu (Giocatore 1)</h3>
-            <div id="p1-hand"></div>
+        <div class="player-area" id="area-p1">
+            <h3 id="p1-info">GIOCATORE 1</h3>
+            <div id="p1-hand" class="hidden-hand"></div>
         </div>
     </div>
 
