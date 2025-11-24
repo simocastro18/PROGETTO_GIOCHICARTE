@@ -80,18 +80,13 @@ function renderGame(state) {
     const overlay = document.getElementById('transition-overlay');
     const nextPlayerText = document.getElementById('next-player-name');
 
+    // --- MODIFICA QUI PER I PUNTI ---
+    bottomInfo.innerText = `GIOCATORE 1 - Prese: ${state.p1Stats.capturedCount} (Scope: ${state.p1Stats.scopes}) | TOTALE: ${state.p1Stats.totalScore}`;
+    topInfo.innerText = `GIOCATORE 2 - Prese: ${state.p2Stats.capturedCount} (Scope: ${state.p2Stats.scopes}) | TOTALE: ${state.p2Stats.totalScore}`;
+
     // 1. Aggiorniamo subito il tavolo e i testi (così si vede la mossa fatta)
     tableDiv.innerHTML = "";
     selectedTableCards = [];
-    
-    bottomInfo.innerText = `GIOCATORE 1 - Prese: ${state.p1Stats.capturedCount} (Scope: ${state.p1Stats.scopes})`;
-    topInfo.innerText = `GIOCATORE 2 - Prese: ${state.p2Stats.capturedCount} (Scope: ${state.p2Stats.scopes})`;
-
-    // Disegna carte tavolo
-    // ... dentro renderGame ...
-
-    // Disegna carte tavolo
-    // Dentro renderGame, nel blocco state.table.forEach...
 
     state.table.forEach((card, index) => {
         const cardDiv = document.createElement('div');
@@ -169,6 +164,9 @@ function renderGame(state) {
         //  altrimenti per ora funziona solo Locale come richiesto).
         // Per l'online non copriamo la mano "mia"
         // ... (Logica online omessa per brevità su richiesta focus locale)
+    }
+    if (state.message.includes("PARTITA FINITA")) {
+        alert(state.message);
     }
 }
 

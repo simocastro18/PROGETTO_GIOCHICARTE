@@ -37,7 +37,7 @@ io.on('connection', (socket) => {
                 socket.join(roomName);
                 console.log(`Giocatore ${socket.id} unito a ${roomName} come P2`);
                 
-                rooms[roomName].game.startGame();
+                // NOTA: rimosso rooms[roomName].game.startGame() perché il gioco è già inizializzato dal costruttore
                 
                 io.to(roomName).emit('gameStarted', { message: 'Partita iniziata! Trovato avversario!' });
                 sendGameStateToPlayers(roomName);
@@ -46,7 +46,7 @@ io.on('connection', (socket) => {
                 // Crea nuova stanza
                 roomName = 'room_' + Date.now();
                 rooms[roomName] = {
-                    game: new CirullaGame(),
+                    game: new CirullaGame(), // <--- Il costruttore avvia già la manche e distribuisce le carte
                     players: [{ id: socket.id, socketId: socket.id, playerIndex: 0 }],
                     mode: 'online',
                     gameType: gameType
@@ -67,14 +67,15 @@ io.on('connection', (socket) => {
             // Partita Locale (Hotseat)
             roomName = 'local_' + socket.id;
             rooms[roomName] = {
-                game: new CirullaGame(),
+                game: new CirullaGame(), // <--- Il costruttore avvia già la manche
                 players: [{ id: socket.id, socketId: socket.id, playerIndex: 0 }],
                 mode: 'locale',
                 gameType: gameType
             };
             
             socket.join(roomName);
-            rooms[roomName].game.startGame();
+            
+            // NOTA: rimosso rooms[roomName].game.startGame() perché causava l'errore
             
             socket.emit('gameJoined', { 
                 room: roomName, 
@@ -91,7 +92,7 @@ io.on('connection', (socket) => {
         const room = rooms[roomName];
         if (!room) return;
 
-        // Verifica turno (Solo se online, in locale ci si passa il telefono)
+        // Verifica turno (Solo se online)
         if (room.mode === 'online') {
             const player = room.players.find(p => p.socketId === socket.id);
             if (!player || player.playerIndex !== room.game.currentPlayer) {
@@ -100,7 +101,7 @@ io.on('connection', (socket) => {
             }
         }
 
-        // Esegui la giocata passando anche le carte selezionate sul tavolo
+        // Esegui la giocata
         const result = room.game.playTurn(cardIndex, selectedTableIndices || []);
         
         if (!result.success) {
@@ -133,7 +134,7 @@ io.on('connection', (socket) => {
     });
 });
 
-// Funzione helper (fuori dal blocco connection, ma usa 'io' che è globale qui)
+// Funzione helper
 function sendGameStateToPlayers(roomName) {
     const room = rooms[roomName];
     if (!room) return;
