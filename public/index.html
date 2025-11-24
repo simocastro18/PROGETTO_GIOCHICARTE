@@ -7,29 +7,77 @@
     <style>
         body { font-family: monospace; text-align: center; background: #222; color: white; user-select: none; }
         
-        .card { 
-            border: 1px solid #555; width: 50px; height: 80px; margin: 5px; 
-            display: inline-flex; justify-content: center; align-items: center; 
-            background: #fff; color: black; border-radius: 4px; font-weight: bold; 
-            font-size: 14px; position: relative; transition: all 0.3s;
+        .card {
+    /* PROPORZIONI MIGLIORI */
+            width: 75px;     /* Un po' più larghe */
+            height: 110px;   /* Altezza proporzionata */
+            margin: 8px;     /* Più spazio tra le carte */
+
+            display: inline-block;
+            vertical-align: middle;
+
+            /* PULIZIA: Via il bordo spesso, usiamo l'ombra */
+            border: none;
+            border-radius: 8px; /* Angoli più morbidi */
+            background-color: transparent; /* Rimuove lo sfondo bianco extra */
+
+            /* Assicura che l'immagine riempia bene lo spazio senza deformarsi */
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center bottom; /* Allinea in basso per evitare spazi bianchi sotto */
+
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+
+            /* Ombra morbida per dare profondità */
+            box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.3);
         }
-        
+
+        /* Quando passi il mouse sopra una carta giocabile */
+        .playable:hover {
+            transform: translateY(-12px) scale(1.02); /* Si alza di più */
+            box-shadow: 4px 8px 12px rgba(0, 0, 0, 0.4);
+            z-index: 10;
+        }
         .table-area { background: #27ae60; padding: 20px; border-radius: 5px; margin: 10px 0; min-height: 100px; }
         .table-card { cursor: pointer; }
-        .selected { border: 3px solid #e74c3c !important; transform: scale(1.1); box-shadow: 0 0 10px #e74c3c; }
+        .selected {
+            /* Evidenzia con un alone rosso invece di un bordo spesso */
+            box-shadow: 0 0 0 3px #e74c3c, 2px 4px 8px rgba(0,0,0,0.3) !important;
+            transform: scale(1.05);
+        }
 
         .player-area { border: 1px dashed #444; padding: 10px; margin: 10px 0; position: relative; min-height: 100px; transition: background 0.5s;}
         
         .active-turn { color: #f1c40f; text-shadow: 0 0 5px #f1c40f; font-size: 1.2em; }
 
         /* NASCONDI CARTE */
+        /* In index.html dentro <style> */
+
+        /* Stile per le carte coperte (dorso) con IMMAGINE */
         .hidden-hand .card {
-            background: repeating-linear-gradient(45deg, #606dbc, #606dbc 10px, #465298 10px, #465298 20px);
-            color: transparent;
+            /* --- MODIFICA QUI: Percorso dell'immagine del retro --- */
+            /* Assicurati che il nome del file sia identico (es. back.png o retro.jpg) */
+            background-image: url('/cards_franc/back-red.png') !important;
+
+            /* --- Come gestire l'immagine --- */
+            /* 'cover' fa sì che l'immagine riempia tutta la carta, tagliando gli eccessi se necessario. */
+            /* È l'opzione migliore per i dorsi per evitare deformazioni. */
+            background-size: cover !important;
+            background-repeat: no-repeat;
+            background-position: center;
+
+            /* Togliamo il colore di sfondo rosso che c'era prima */
+            background-color: transparent !important;
+
+            /* Manteniamo un bordo sottile e l'ombra per definitezza */
+            border: 1px solid #ccc;
+            box-shadow: 1px 2px 4px rgba(0,0,0,0.2);
+
+            /* Disabilita interazione */
             cursor: default;
-            border: 1px solid #444;
+            transform: none !important;
         }
-        
         /* Messaggio di transizione */
         #transition-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;

@@ -11,11 +11,18 @@ class CirullaGame {
         this.lastMessage = "";
         this.gameStarted = false;
         
+        // <--- NUOVO: Variabile per ricordare chi ha fatto l'ultima presa
+        this.lastCapturingPlayerIndex = null; 
+
         this.initializeDeck();
     }
 
+    // Dentro cirulla.js
+
     initializeDeck() {
-        const suits = ['♥', '♦', '♣', '♠']; // Cuori, Quadri, Fiori, Picche
+        // Usiamo le sigle che corrispondono ai nomi dei file
+        const suits = ['C', 'D', 'F', 'P']; 
+        
         const values = [
             { num: 1, label: 'A' }, { num: 2, label: '2' }, { num: 3, label: '3' },
             { num: 4, label: '4' }, { num: 5, label: '5' }, { num: 6, label: '6' },
@@ -25,7 +32,13 @@ class CirullaGame {
         this.deck = [];
         for (let s of suits) {
             for (let v of values) {
-                this.deck.push({ suit: s, value: v.num, label: `${v.label}${s}` });
+                // Label ora serve solo per il debug testuale (es: "7d" o "Ac")
+                // La proprietà importante ora è che 'suit' è pronto per l'immagine
+                this.deck.push({ 
+                    suit: s, 
+                    value: v.num, 
+                    label: `${v.label}${s}` // Esempio: "Ad" (Asso Denari)
+                });
             }
         }
     }
@@ -44,6 +57,9 @@ class CirullaGame {
         this.players.forEach(p => { p.hand = []; p.captured = []; p.scopes = 0; });
         this.currentPlayer = 0;
         this.gameStarted = true;
+        
+        // <--- NUOVO: Resetta il tracciamento prese a inizio partita
+        this.lastCapturingPlayerIndex = null;
 
         // 4 carte in tavola
         for(let i=0; i<4; i++) this.table.push(this.deck.pop());
@@ -66,15 +82,13 @@ class CirullaGame {
     }
 
     playTurn(cardIndex, selectedTableIndices = []) {
-        // Convertiamo gli indici in numeri interi per sicurezza
         selectedTableIndices = selectedTableIndices.map(Number);
         
         const player = this.players[this.currentPlayer];
-        const cardPlayed = player.hand[cardIndex]; // La carta che voglio giocare
+        const cardPlayed = player.hand[cardIndex]; 
 
         if (!cardPlayed) return { success: false, message: "Errore: Carta non trovata" };
 
-        // 1. Recuperiamo le carte dal tavolo che l'utente ha selezionato
         let selectedCards = [];
         for (let idx of selectedTableIndices) {
             if (this.table[idx]) {
@@ -90,11 +104,10 @@ class CirullaGame {
         const tableSum = selectedCards.reduce((acc, c) => acc + c.value, 0);
         const aceOnTable = this.table.find(c => c.value === 1);
 
-        // A. Asso Pigliatutto (se gioco Asso e non ci sono Assi in tavola)
+        // A. Asso Pigliatutto
         if (cardPlayed.value === 1 && !aceOnTable) {
-            // Prende tutto automaticamente, ignoriamo la selezione dell'utente
             selectedCards = [...this.table];
-            selectedTableIndices = this.table.map((_, i) => i); // Seleziona tutti gli indici
+            selectedTableIndices = this.table.map((_, i) => i);
             isValid = true;
             captureType = "ASSO PIGLIATUTTO";
         }
@@ -103,12 +116,12 @@ class CirullaGame {
             isValid = true;
             captureType = "Presa da 15";
         }
-        // C. Presa Uguale (es. 7 prende 7)
+        // C. Presa Uguale
         else if (tableSum === cardPlayed.value && selectedCards.length > 0) {
             isValid = true;
             captureType = "Presa uguale";
         }
-        // D. Scarto (nessuna carta selezionata)
+        // D. Scarto
         else if (selectedCards.length === 0) {
             isValid = true;
             captureType = "Scarto";
@@ -120,23 +133,22 @@ class CirullaGame {
 
         // --- ESECUZIONE ---
 
-        // 1. Rimuovi carta dalla mano
         player.hand.splice(cardIndex, 1);
 
         if (captureType === "Scarto") {
             this.table.push(cardPlayed);
             this.lastMessage = `Ha scartato ${cardPlayed.label}`;
         } else {
-            // 2. Aggiungi alle prese (carta giocata + carte tavolo)
+            // È AVVENUTA UNA PRESA
             player.captured.push(cardPlayed, ...selectedCards);
 
-            // 3. RIMUOVI CARTE DAL TAVOLO (Usando gli indici)
-            // Creiamo un nuovo array tavolo tenendo solo le carte il cui INDICE NON è tra quelli selezionati
+            // <--- NUOVO: Aggiorniamo chi ha preso per ultimo
+            this.lastCapturingPlayerIndex = this.currentPlayer;
+
             this.table = this.table.filter((_, index) => !selectedTableIndices.includes(index));
 
             this.lastMessage = `${captureType}!`;
 
-            // 4. Verifica Scopa
             if (this.table.length === 0 && this.deck.length > 0) {
                 player.scopes++;
                 this.lastMessage += " SCOPA!";
@@ -151,8 +163,26 @@ class CirullaGame {
             if (this.deck.length > 0) {
                 this.dealCards();
             } else {
+                // --- PARTITA FINITA ---
                 this.lastMessage = "Partita Finita";
-                // Qui andrebbe la logica di conteggio punti finale
+                
+                // <--- NUOVO: Assegnazione carte rimanenti
+                if (this.table.length > 0) {
+                    if (this.lastCapturingPlayerIndex !== null) {
+                        const winner = this.players[this.lastCapturingPlayerIndex];
+                        
+                        // Aggiungi le carte del tavolo al vincitore
+                        winner.captured.push(...this.table);
+                        
+                        // Svuota il tavolo
+                        const numCards = this.table.length;
+                        this.table = [];
+                        
+                        this.lastMessage = `Partita Finita. Giocatore ${this.lastCapturingPlayerIndex + 1} prende le ultime ${numCards} carte!`;
+                    }
+                }
+                
+                // Qui in futuro aggiungerai il calcolo punti completo (Primiera, denari, ecc.)
             }
         }
 
@@ -166,7 +196,6 @@ class CirullaGame {
             p2Hand: this.players[1].hand,
             turn: this.currentPlayer,
             message: this.lastMessage,
-            // DATI PER IL PUNTEGGIO
             p1Stats: {
                 capturedCount: this.players[0].captured.length,
                 scopes: this.players[0].scopes

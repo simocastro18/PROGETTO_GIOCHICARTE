@@ -5,6 +5,34 @@ let gameMode = "";
 let selectedTableCards = []; 
 let isTransitioning = false; // Variabile per bloccare i click durante il cambio
 
+// Funzione helper per creare le carte
+const createCard = (card) => {
+    // 1. VEDIAMO COSA ARRIVA
+    console.log("Creazione carta:", card); 
+
+    const div = document.createElement('div');
+    div.className = 'card';
+        
+    // Costruiamo il nome
+    const fileName = `${card.suit.toUpperCase()}_${card.value}.png`;
+        
+    // 2. VEDIAMO CHE NOME GENERA
+    console.log("Nome file generato:", fileName);
+
+        // 3. APPLICHIAMO LO STILE
+        // Nota: Ho aggiunto le virgolette singole dentro le parentesi di url('...') per sicurezza
+    div.style.backgroundImage = `url('/cards_franc/${fileName}')`;
+        
+        // Stili essenziali
+    div.style.backgroundSize = 'contain';
+    div.style.backgroundRepeat = 'no-repeat';
+    div.style.backgroundPosition = 'center';
+    div.style.backgroundColor = 'white'; 
+
+    return div;
+};
+
+
 function joinGame(mode) {
     document.getElementById('lobby-screen').style.display = 'none';
     document.getElementById('game-screen').style.display = 'block';
@@ -60,10 +88,23 @@ function renderGame(state) {
     topInfo.innerText = `GIOCATORE 2 - Prese: ${state.p2Stats.capturedCount} (Scope: ${state.p2Stats.scopes})`;
 
     // Disegna carte tavolo
+    // ... dentro renderGame ...
+
+    // Disegna carte tavolo
+    // Dentro renderGame, nel blocco state.table.forEach...
+
     state.table.forEach((card, index) => {
         const cardDiv = document.createElement('div');
         cardDiv.className = 'card table-card';
-        cardDiv.innerText = card.label;
+
+        // --- FIX QUI ---
+        // 1. toUpperCase(): trasforma 'c' in 'C'
+        // 2. .jpg: usa l'estensione corretta
+        const fileName = `${card.suit.toUpperCase()}_${card.value}.png`; 
+        
+        cardDiv.style.backgroundImage = `url('/cards_franc/${fileName}')`;
+        // ---------------
+
         cardDiv.onclick = () => toggleTableCard(index, cardDiv);
         tableDiv.appendChild(cardDiv);
     });
@@ -74,12 +115,7 @@ function renderGame(state) {
     topHandDiv.innerHTML = "";
     
     // Funzione helper per creare le carte (ancora senza onclick)
-    const createCard = (card) => {
-        const div = document.createElement('div');
-        div.className = 'card';
-        div.innerText = card.label;
-        return div;
-    };
+    // Dentro client.js
 
     state.p1Hand.forEach(card => bottomHandDiv.appendChild(createCard(card)));
     state.p2Hand.forEach(card => topHandDiv.appendChild(createCard(card)));
@@ -137,17 +173,22 @@ function renderGame(state) {
 }
 
 // Funzione per rendere cliccabili le carte DOPO il timeout
+// Funzione per rendere cliccabili le carte DOPO il timeout
 function activateHand(containerDiv, handData, playerIdx) {
-    // Svuotiamo e ridisegniamo con i listener corretti
+    // Svuotiamo e ridisegniamo
     containerDiv.innerHTML = "";
     
     handData.forEach((card, index) => {
-        const div = document.createElement('div');
-        div.className = 'card playable'; // Aggiungi classe hover
-        div.innerText = card.label;
+        // --- MODIFICA FONDAMENTALE ---
+        // Invece di creare un div vuoto da zero, usiamo la nostra funzione createCard
+        // che sa già come mettere l'immagine giusta!
+        const div = createCard(card); 
+        // -----------------------------
+
+        div.classList.add('playable'); // Aggiungiamo la classe per l'hover
         div.style.cursor = "pointer";
         
-        // Click per giocare
+        // Aggiungiamo il click per giocare
         div.onclick = () => playCard(index);
         
         containerDiv.appendChild(div);

@@ -1,1 +1,3 @@
-fix: ultimo che prende, prende carte rimanenti
+implementare :
+conteggio punti
+multiplayer
