@@ -3,35 +3,30 @@ let myRoom = "";
 let myPlayerIndex = -1; 
 let gameMode = "";
 let selectedTableCards = []; 
-let isTransitioning = false; // Variabile per bloccare i click durante il cambio
+let isTransitioning = false; 
 
-// Funzione helper per creare le carte
+// 1. FIX: Gestione della carta nascosta (Dorso)
 const createCard = (card) => {
-    // 1. VEDIAMO COSA ARRIVA
-    console.log("Creazione carta:", card); 
-
     const div = document.createElement('div');
     div.className = 'card';
-        
-    // Costruiamo il nome
-    const fileName = `${card.suit.toUpperCase()}_${card.value}.png`;
-        
-    // 2. VEDIAMO CHE NOME GENERA
-    console.log("Nome file generato:", fileName);
+    
+    // Se la carta è nascosta, mettiamo subito il dorso e ci fermiamo qui!
+    if (card.hidden) {
+        div.style.backgroundImage = `url('/cards_franc/back-red.png')`;
+        div.style.backgroundSize = 'cover';
+        div.style.cursor = 'default';
+        return div;
+    }
 
-        // 3. APPLICHIAMO LO STILE
-        // Nota: Ho aggiunto le virgolette singole dentro le parentesi di url('...') per sicurezza
+    // Se la carta è scoperta, generiamo l'immagine normale
+    const fileName = `${card.suit.toUpperCase()}_${card.value}.png`;
     div.style.backgroundImage = `url('/cards_franc/${fileName}')`;
-        
-        // Stili essenziali
     div.style.backgroundSize = 'contain';
     div.style.backgroundRepeat = 'no-repeat';
     div.style.backgroundPosition = 'center';
-    div.style.backgroundColor = 'white'; 
-
+    div.style.backgroundColor = 'transparent'; 
     return div;
 };
-
 
 function joinGame(mode) {
     document.getElementById('lobby-screen').style.display = 'none';
@@ -45,8 +40,12 @@ socket.on('gameJoined', (data) => {
     myPlayerIndex = data.playerIndex;
 });
 
+// 2. FIX: Ascoltiamo quando il matchmaking ha successo
+socket.on('gameStarted', (data) => {
+    document.getElementById('status-msg').innerText = data.message;
+});
+
 socket.on('updateTable', (state) => {
-    // Appena arriva l'aggiornamento, lanciamo la renderizzazione automatica
     renderGame(state);
 });
 
@@ -57,20 +56,19 @@ socket.on('error', (data) => {
 });
 
 function toggleTableCard(index, divElement) {
-    if (isTransitioning) return; // Non si può cliccare durante il passaggio
+    if (isTransitioning) return; 
 
     const idxInSelection = selectedTableCards.indexOf(index);
     if (idxInSelection > -1) {
         selectedTableCards.splice(idxInSelection, 1);
         divElement.classList.remove('selected');
-        divElement.style.border = "1px solid #555";
     } else {
         selectedTableCards.push(index);
         divElement.classList.add('selected');
-        divElement.style.border = "3px solid #e74c3c";
     }
 }
 
+// 3. FIX: Prospettiva Dinamica (Io sono sempre in basso!)
 function renderGame(state) {
     const tableDiv = document.getElementById('table-cards');
     const bottomHandDiv = document.getElementById('p1-hand'); 
@@ -78,123 +76,117 @@ function renderGame(state) {
     const bottomInfo = document.getElementById('p1-info');
     const topInfo = document.getElementById('p2-info');
     const overlay = document.getElementById('transition-overlay');
-    const nextPlayerText = document.getElementById('next-player-name');
 
-    // --- MODIFICA QUI PER I PUNTI ---
-    bottomInfo.innerText = `GIOCATORE 1 - Prese: ${state.p1Stats.capturedCount} (Scope: ${state.p1Stats.scopes}) | TOTALE: ${state.p1Stats.totalScore}`;
-    topInfo.innerText = `GIOCATORE 2 - Prese: ${state.p2Stats.capturedCount} (Scope: ${state.p2Stats.scopes}) | TOTALE: ${state.p2Stats.totalScore}`;
+    // --- LOGICA DELLA PROSPETTIVA ---
+    let myHandData, oppHandData, myStats, oppStats, myName, oppName, myIndex;
 
-    // 1. Aggiorniamo subito il tavolo e i testi (così si vede la mossa fatta)
+    if (state.mode === 'locale') {
+        // In locale la prospettiva è fissa
+        myHandData = state.p1Hand; oppHandData = state.p2Hand;
+        myStats = state.p1Stats; oppStats = state.p2Stats;
+        myName = "GIOCATORE 1"; oppName = "GIOCATORE 2";
+        myIndex = state.turn; // Attiviamo la mano in base al turno
+    } else {
+        // IN ONLINE: Chi sono io?
+        if (state.myPlayerIndex === 0) {
+            myHandData = state.p1Hand; oppHandData = state.p2Hand;
+            myStats = state.p1Stats; oppStats = state.p2Stats;
+            myName = "TU (G1)"; oppName = "AVVERSARIO (G2)";
+            myIndex = 0;
+        } else {
+            // Se sono il G2, inverto i dati! Metto i miei sotto e i suoi sopra.
+            myHandData = state.p2Hand; oppHandData = state.p1Hand;
+            myStats = state.p2Stats; oppStats = state.p1Stats;
+            myName = "TU (G2)"; oppName = "AVVERSARIO (G1)";
+            myIndex = 1;
+        }
+    }
+
+    // Aggiorna i testi in base alla prospettiva
+    bottomInfo.innerText = `${myName} - Prese: ${myStats.capturedCount} (Scope: ${myStats.scopes}) | PUNTI: ${myStats.totalScore}`;
+    topInfo.innerText = `${oppName} - Prese: ${oppStats.capturedCount} (Scope: ${oppStats.scopes}) | PUNTI: ${oppStats.totalScore}`;
+
+    // Evidenzia chi deve giocare
+    if (state.turn === myIndex) {
+        bottomInfo.classList.add('active-turn'); topInfo.classList.remove('active-turn');
+    } else {
+        bottomInfo.classList.remove('active-turn'); topInfo.classList.add('active-turn');
+    }
+
+    // Disegna il Tavolo
     tableDiv.innerHTML = "";
     selectedTableCards = [];
-
     state.table.forEach((card, index) => {
-        const cardDiv = document.createElement('div');
-        cardDiv.className = 'card table-card';
-
-        // --- FIX QUI ---
-        // 1. toUpperCase(): trasforma 'c' in 'C'
-        // 2. .jpg: usa l'estensione corretta
-        const fileName = `${card.suit.toUpperCase()}_${card.value}.png`; 
-        
-        cardDiv.style.backgroundImage = `url('/cards_franc/${fileName}')`;
-        // ---------------
-
+        const cardDiv = createCard(card);
+        cardDiv.classList.add('table-card');
         cardDiv.onclick = () => toggleTableCard(index, cardDiv);
         tableDiv.appendChild(cardDiv);
     });
 
-    // 2. Disegniamo le mani MA le lasciamo COPERTE (.hidden-hand) inizialmente
-    // Questo serve a resettare il DOM
+    // Svuota le mani
     bottomHandDiv.innerHTML = "";
     topHandDiv.innerHTML = "";
     
-    // Funzione helper per creare le carte (ancora senza onclick)
-    // Dentro client.js
-
-    state.p1Hand.forEach(card => bottomHandDiv.appendChild(createCard(card)));
-    state.p2Hand.forEach(card => topHandDiv.appendChild(createCard(card)));
-
-    // Messaggio di stato
-    document.getElementById('status-msg').innerText = state.message || "Partita in corso";
-
-    // 3. GESTIONE AUTOMAZIONE TRANSIZIONE (Solo Locale)
-    if (gameMode === 'locale') {
-        
-        // Blocchiamo tutto
+    // Disegna la modalità
+    if (state.mode === 'locale') {
+        // --- TRANSIZIONE LOCALE ---
         isTransitioning = true; 
         
-        // Copriamo entrambe le mani subito
-        bottomHandDiv.classList.add('hidden-hand');
-        topHandDiv.classList.add('hidden-hand');
+        // Disegna tutto coperto all'inizio
+        myHandData.forEach(c => bottomHandDiv.appendChild(createCard({hidden: true})));
+        oppHandData.forEach(c => topHandDiv.appendChild(createCard({hidden: true})));
 
-        // Chi deve giocare ora?
         const turnName = state.turn === 0 ? "GIOCATORE 1" : "GIOCATORE 2";
-        
-        // Evidenzia testo
-        if (state.turn === 0) { bottomInfo.classList.add('active-turn'); topInfo.classList.remove('active-turn'); }
-        else { bottomInfo.classList.remove('active-turn'); topInfo.classList.add('active-turn'); }
-
-        // Mostra Overlay "Passa il telefono"
         overlay.style.display = "flex";
-        nextPlayerText.innerText = "Tocca a: " + turnName;
+        document.getElementById('next-player-name').innerText = "Tocca a: " + turnName;
 
-        // ATTESA DI 1.5 SECONDI
         setTimeout(() => {
-            // Nascondi overlay
             overlay.style.display = "none";
-            isTransitioning = false; // Sblocca click
+            isTransitioning = false; 
 
-            // Scopri SOLO la mano di chi deve giocare e aggiungi i click
+            // Scopri solo la mano di chi deve giocare
             if (state.turn === 0) {
-                // Tocca a P1 (Basso)
-                bottomHandDiv.classList.remove('hidden-hand');
-                activateHand(bottomHandDiv, state.p1Hand, 0); // Attiva click
+                activateHand(bottomHandDiv, state.p1Hand, true);
             } else {
-                // Tocca a P2 (Alto)
-                topHandDiv.classList.remove('hidden-hand');
-                activateHand(topHandDiv, state.p2Hand, 1); // Attiva click
+                activateHand(topHandDiv, state.p2Hand, true);
             }
-
-        }, 1500); // 1.5 secondi di attesa
+        }, 1500);
 
     } else {
-        // --- LOGICA ONLINE (Nessuna attesa, niente overlay) ---
-        // (Qui metti la logica online standard se la vuoi mantenere,
-        //  altrimenti per ora funziona solo Locale come richiesto).
-        // Per l'online non copriamo la mano "mia"
-        // ... (Logica online omessa per brevità su richiesta focus locale)
+        // --- TRANSIZIONE ONLINE (Nessuna attesa) ---
+        bottomHandDiv.classList.remove('hidden-hand');
+        topHandDiv.classList.remove('hidden-hand');
+
+        // L'avversario (in alto) è sempre coperto, disegniamolo
+        oppHandData.forEach(card => topHandDiv.appendChild(createCard(card)));
+
+        // Le mie carte (in basso) sono scoperte. Se è il mio turno, sono cliccabili!
+        activateHand(bottomHandDiv, myHandData, state.turn === state.myPlayerIndex);
     }
-    if (state.message.includes("PARTITA FINITA")) {
-        alert(state.message);
-    }
+
+    if (state.message) document.getElementById('status-msg').innerText = state.message;
+    if (state.message && state.message.includes("PARTITA FINITA")) alert(state.message);
 }
 
-// Funzione per rendere cliccabili le carte DOPO il timeout
-// Funzione per rendere cliccabili le carte DOPO il timeout
-function activateHand(containerDiv, handData, playerIdx) {
-    // Svuotiamo e ridisegniamo
-    containerDiv.innerHTML = "";
+// Funzione helper per disegnare una mano e renderla cliccabile
+function activateHand(containerDiv, handData, isMyTurn) {
+    containerDiv.innerHTML = ""; 
     
     handData.forEach((card, index) => {
-        // --- MODIFICA FONDAMENTALE ---
-        // Invece di creare un div vuoto da zero, usiamo la nostra funzione createCard
-        // che sa già come mettere l'immagine giusta!
         const div = createCard(card); 
-        // -----------------------------
-
-        div.classList.add('playable'); // Aggiungiamo la classe per l'hover
-        div.style.cursor = "pointer";
         
-        // Aggiungiamo il click per giocare
-        div.onclick = () => playCard(index);
+        if (isMyTurn && !card.hidden) {
+            div.classList.add('playable'); 
+            div.style.cursor = "pointer";
+            div.onclick = () => playCard(index);
+        }
         
         containerDiv.appendChild(div);
     });
 }
 
 function playCard(index) {
-    if (isTransitioning) return; // Sicurezza extra
+    if (isTransitioning) return; 
 
     const cardsOnTableCount = document.getElementById('table-cards').children.length;
     if (cardsOnTableCount > 0 && selectedTableCards.length === 0) {
