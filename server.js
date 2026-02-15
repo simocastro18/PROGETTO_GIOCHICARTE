@@ -37,6 +37,15 @@ io.on('connection', (socket) => {
                 socket.join(roomName);
                 console.log(`Giocatore ${socket.id} unito a ${roomName} come P2`);
                 
+                // --- INIZIO FIX: Diciamo al G2 in che stanza si trova! ---
+                socket.emit('gameJoined', { 
+                    room: roomName, 
+                    playerId: socket.id, 
+                    playerIndex: 1, 
+                    waitingForOpponent: false 
+                });
+                // --- FINE FIX ---
+
                 // NOTA: rimosso rooms[roomName].game.startGame() perché il gioco è già inizializzato dal costruttore
                 
                 io.to(roomName).emit('gameStarted', { message: 'Partita iniziata! Trovato avversario!' });

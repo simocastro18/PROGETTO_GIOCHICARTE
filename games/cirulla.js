@@ -155,29 +155,49 @@ class CirullaGame {
         
         const tableSum = selectedCards.reduce((acc, c) => acc + c.value, 0);
         const aceOnTable = this.table.find(c => c.value === 1);
+        const exactMatchOnTable = this.table.find(c => c.value === cardPlayed.value); // <--- NUOVO CONTROLLO ARBITRO
 
-        // A. Asso Pigliatutto
-        if (cardPlayed.value === 1 && !aceOnTable) {
+        // A. L'Asso Pigliatutto (Gioco Asso, NESSUN Asso in tavola, e tavolo NON vuoto)
+        if (cardPlayed.value === 1 && !aceOnTable && this.table.length > 0) {
             selectedCards = [...this.table];
             selectedTableIndices = this.table.map((_, i) => i);
             isValid = true;
             captureType = "ASSO PIGLIATUTTO";
         }
-        // B. Presa da 15
+        // B. L'Obbligo dell'Asso (Gioco Asso, C'E' un Asso in tavola)
+        else if (cardPlayed.value === 1 && aceOnTable) {
+            if (selectedCards.length === 1 && selectedCards[0].value === 1) {
+                isValid = true;
+                captureType = "Presa uguale";
+            } else {
+                return { success: false, message: "Regola dell'Asso: Devi prendere l'Asso presente in tavola!" };
+            }
+        }
+        // C. LA LEGGE DELL'OBBLIGO DI PRESA (Se c'è la stessa carta, DEVI prendere quella e nient'altro)
+        else if (exactMatchOnTable && cardPlayed.value !== 1) {
+            if (selectedCards.length === 1 && selectedCards[0].value === cardPlayed.value) {
+                isValid = true;
+                captureType = "Presa uguale";
+            } else {
+                return { success: false, message: `Obbligo di presa: c'è già un ${cardPlayed.value} in tavola! Devi prendere quello.` };
+            }
+        }
+        // D. Presa da 15 (Solo se non è scattato l'obbligo di presa qui sopra)
         else if ((cardPlayed.value + tableSum) === 15 && selectedCards.length > 0) {
             isValid = true;
             captureType = "Presa da 15";
         }
-        // C. Presa Uguale
-        else if (tableSum === cardPlayed.value && selectedCards.length > 0) {
+        // E. Presa per Somma (es. Gioco 7, prendo 4 e 3)
+        else if (tableSum === cardPlayed.value && selectedCards.length > 1) {
             isValid = true;
-            captureType = "Presa uguale";
+            captureType = "Presa per somma";
         }
-        // D. Scarto
+        // F. Scarto
         else if (selectedCards.length === 0) {
             isValid = true;
             captureType = "Scarto";
         }
+        // --- FINE FIX ---
 
         if (!isValid) {
             return { success: false, message: `Mossa non valida (Somma: ${tableSum + cardPlayed.value})` };
@@ -199,10 +219,18 @@ class CirullaGame {
             else this.lastMessage = "Presa!";
 
             // Scopa?
-            if (this.table.length === 0 && this.deck.length > 0) {
+            // --- INIZIO FIX SCOPA ---
+            // Capiamo se è letteralmente l'ultima carta della smazzata
+            const isVeryLastCard = (this.deck.length === 0 && 
+                                    this.players[0].hand.length === 0 && 
+                                    this.players[1].hand.length === 0);
+
+            // Scopa? (Tavolo vuoto e NON è l'ultima carta)
+            if (this.table.length === 0 && !isVeryLastCard) {
                 player.scopes++;
                 this.lastMessage += " SCOPA!";
             }
+            // --- FINE FIX SCOPA ---
         }
 
         // Cambio Turno
