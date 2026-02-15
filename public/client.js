@@ -166,6 +166,73 @@ function renderGame(state) {
 
     if (state.message) document.getElementById('status-msg').innerText = state.message;
     if (state.message && state.message.includes("PARTITA FINITA")) alert(state.message);
+   // --- ACCENSIONE TABELLONE FINE MANO ---
+    if (state.isMancheFinished && state.lastRoundStats) {
+        let myRoundStats, oppRoundStats, myTotalScore, oppTotalScore;
+        
+        if (state.mode === 'locale' || state.myPlayerIndex === 0) {
+            myRoundStats = state.lastRoundStats.p1;
+            oppRoundStats = state.lastRoundStats.p2;
+            myTotalScore = state.p1Stats.totalScore;
+            oppTotalScore = state.p2Stats.totalScore;
+        } else {
+            myRoundStats = state.lastRoundStats.p2;
+            oppRoundStats = state.lastRoundStats.p1;
+            myTotalScore = state.p2Stats.totalScore;
+            oppTotalScore = state.p1Stats.totalScore;
+        }
+
+        // Compiliamo MIEI PUNTI
+        document.getElementById('my-carte-val').innerText = myRoundStats.carteCount;
+        document.getElementById('my-carte-pts').innerText = myRoundStats.ptCarte;
+
+        document.getElementById('my-denari-val').innerText = myRoundStats.denariCount;
+        document.getElementById('my-denari-pts').innerText = myRoundStats.ptDenari;
+
+        document.getElementById('my-settebello-val').innerText = myRoundStats.settebello ? "1" : "0";
+        document.getElementById('my-settebello-pts').innerText = myRoundStats.ptSettebello;
+
+        document.getElementById('my-primiera-val').innerText = myRoundStats.primieraScore;
+        document.getElementById('my-primiera-pts').innerText = myRoundStats.ptPrimiera;
+
+        document.getElementById('my-scope-val').innerText = myRoundStats.scope;
+        document.getElementById('my-scope-pts').innerText = myRoundStats.scope; // Ogni scopa vale 1 punto
+
+        // I Bonus li implementeremo dopo, per ora li prepariamo a zero
+        document.getElementById('my-bonus-val').innerText = "-"; 
+        document.getElementById('my-bonus-pts').innerText = "0";
+
+        document.getElementById('my-totale-modal').innerText = myTotalScore;
+
+        // Compiliamo AVVERSARIO
+        document.getElementById('opp-carte-val').innerText = oppRoundStats.carteCount;
+        document.getElementById('opp-carte-pts').innerText = oppRoundStats.ptCarte;
+
+        document.getElementById('opp-denari-val').innerText = oppRoundStats.denariCount;
+        document.getElementById('opp-denari-pts').innerText = oppRoundStats.ptDenari;
+
+        document.getElementById('opp-settebello-val').innerText = oppRoundStats.settebello ? "1" : "0";
+        document.getElementById('opp-settebello-pts').innerText = oppRoundStats.ptSettebello;
+
+        document.getElementById('opp-primiera-val').innerText = oppRoundStats.primieraScore;
+        document.getElementById('opp-primiera-pts').innerText = oppRoundStats.ptPrimiera;
+
+        document.getElementById('opp-scope-val').innerText = oppRoundStats.scope;
+        document.getElementById('opp-scope-pts').innerText = oppRoundStats.scope;
+
+        document.getElementById('opp-bonus-val').innerText = "-"; 
+        document.getElementById('opp-bonus-pts').innerText = "0";
+
+        document.getElementById('opp-totale-modal').innerText = oppTotalScore;
+
+        // --- LA MAGIA CHE MANCAVA: MOSTRIAMO IL TABELLONE ---
+        document.getElementById('scoreboard-modal').style.display = 'flex';
+        
+    } else {
+        // Se stiamo giocando, assicuriamoci che il tabellone sia nascosto
+        const modal = document.getElementById('scoreboard-modal');
+        if (modal) modal.style.display = 'none';
+    }
 }
 
 // Funzione helper per disegnare una mano e renderla cliccabile
@@ -198,4 +265,9 @@ function playCard(index) {
         cardIndex: index,
         selectedTableIndices: selectedTableCards 
     });
+}
+// Funzione agganciata al bottone del tabellone
+function requestNextRound() {
+    document.getElementById('scoreboard-modal').style.display = 'none'; // Nascondi subito
+    socket.emit('nextRound', { roomName: myRoom }); // Avvisa il server!
 }

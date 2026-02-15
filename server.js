@@ -122,6 +122,31 @@ io.on('connection', (socket) => {
         sendGameStateToPlayers(roomName);
     });
 
+    socket.on('nextRound', (data) => {
+        const room = rooms[data.roomName];
+        if (!room || !room.game) return;
+        
+        // 1. Togliamo il blocco di fine manche
+        room.game.isMancheFinished = false;
+        room.game.lastRoundStats = null;
+        room.game.lastMessage = "Nuova smazzata iniziata!";
+        
+        // 2. Svuotiamo i "cestini" delle prese e le scope della mano precedente
+        // (MA NON tocchiamo room.game.players[x].score, quello serve per i 51 punti!)
+        room.game.players[0].captured = [];
+        room.game.players[1].captured = [];
+        room.game.players[0].scopes = 0;
+        room.game.players[1].scopes = 0;
+        
+        // 3. Rimescoliamo e diamo le carte
+        room.game.initializeDeck();
+        room.game.shuffle();
+        room.game.startRound();
+        
+        // 4. Aggiorniamo i client
+        sendGameStateToPlayers(data.roomName);
+    });
+
     // --- DISCONNESSIONE ---
     socket.on('disconnect', () => {
         console.log('Utente disconnesso:', socket.id);
@@ -144,11 +169,16 @@ io.on('connection', (socket) => {
 });
 
 // Funzione helper
+// Funzione helper
 function sendGameStateToPlayers(roomName) {
     const room = rooms[roomName];
     if (!room) return;
     
     const gameState = room.game.getGameState();
+    
+    // Recuperiamo i dati del tabellone direttamente dal gioco
+    const isFinished = room.game.isMancheFinished;
+    const stats = room.game.lastRoundStats;
     
     if (room.mode === 'online') {
         room.players.forEach(player => {
@@ -158,12 +188,22 @@ function sendGameStateToPlayers(roomName) {
                 // Nascondi carte avversario
                 p1Hand: player.playerIndex === 0 ? gameState.p1Hand : gameState.p1Hand.map(() => ({ hidden: true })),
                 p2Hand: player.playerIndex === 1 ? gameState.p2Hand : gameState.p2Hand.map(() => ({ hidden: true })),
+                
+                // Le variabili ORA SONO DENTRO l'oggetto!
+                isMancheFinished: isFinished,
+                lastRoundStats: stats
             };
+
             io.to(player.socketId).emit('updateTable', personalizedState);
         });
     } else {
-        // Locale: mostra tutto
-        io.to(roomName).emit('updateTable', { ...gameState, mode: 'locale' });
+        // Locale: mostra tutto e passa anche il tabellone!
+        io.to(roomName).emit('updateTable', { 
+            ...gameState, 
+            mode: 'locale',
+            isMancheFinished: isFinished,
+            lastRoundStats: stats 
+        });
     }
 }
 

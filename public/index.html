@@ -85,6 +85,122 @@
             display: none; justify-content: center; align-items: center;
             font-size: 2em; z-index: 1000; flex-direction: column;
         }
+        /* --- TABELLONE PUNTEGGI (MODAL) --- */
+        #scoreboard-modal {
+            position: fixed; 
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); /* Sfondo scuro semitrasparente */
+            display: none; /* Nascosto di default */
+            justify-content: center; 
+            align-items: center;
+            z-index: 1000;
+            color: white; 
+            font-family: Arial, sans-serif;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: #2c3e50; 
+            padding: 30px; 
+            border-radius: 15px;
+            text-align: center; 
+            max-width: 600px; width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border: 2px solid #34495e;
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+            color: #ecf0f1;
+            font-size: 28px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .scoreboard-grid {
+            display: flex; 
+            justify-content: space-between; 
+            margin: 25px 0;
+            background: #1a252f; 
+            border-radius: 10px; 
+            overflow: hidden;
+        }
+
+        .score-col {
+            flex: 1; 
+            padding: 20px;
+        }
+
+        .score-col:first-child { 
+            border-right: 2px solid #2c3e50; 
+        }
+
+        .score-col.my-score { 
+            background: #34495e; /* Colore leggermente diverso per far risaltare il tuo lato */
+        }
+
+        .score-col h3 { 
+            margin-top: 0; 
+            color: #f1c40f; /* Giallo oro per i nomi */
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+        }
+
+        .score-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr; /* 3 Colonne: Voce | Valore | Punti */
+            gap: 10px;
+            margin: 10px 0;
+            font-size: 16px;
+            text-align: right;
+            align-items: center;
+        }
+
+        .score-row span:first-child {
+            text-align: left;
+            color: #bdc3c7; /* Colore testo etichette */
+        }
+
+        .header-row {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #95a5a6;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+
+        .total-row {
+            font-size: 22px;
+            color: #2ecc71;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        
+        .pts-col {
+            color: #f1c40f; /* Giallo per i punti effettivi vinti */
+            font-weight: bold;
+        }
+
+        .score-col hr {
+            border-color: rgba(255,255,255,0.2);
+            margin: 15px 0;
+        }
+
+        .next-round-btn {
+            background: #27ae60; 
+            color: white; 
+            border: none; 
+            padding: 15px 40px;
+            font-size: 20px; 
+            font-weight: bold;
+            border-radius: 8px; 
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s;
+        }
+
+        .next-round-btn:hover { background: #2ecc71; }
+        .next-round-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -121,5 +237,42 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="client.js"></script>
+    <div id="scoreboard-modal">
+        <div class="modal-content">
+            <h2>Fine della Mano</h2>
+            
+            <div class="scoreboard-grid">
+                <div class="score-col">
+                    <h3 id="modal-opp-name">Avversario</h3>
+                    <div class="score-row header-row"><span>Voci</span><span>Valore</span><span>Punti</span></div>
+                    
+                    <div class="score-row"><span>Carte</span><span id="opp-carte-val">0</span><span id="opp-carte-pts" class="pts-col">0</span></div>
+                    <div class="score-row"><span>Ori</span><span id="opp-denari-val">0</span><span id="opp-denari-pts" class="pts-col">0</span></div>
+                    <div class="score-row"><span>Settebello</span><span id="opp-settebello-val">0</span><span id="opp-settebello-pts" class="pts-col">0</span></div>
+                    <div class="score-row"><span>Primiera</span><span id="opp-primiera-val">0</span><span id="opp-primiera-pts" class="pts-col">0</span></div>
+                    <div class="score-row"><span>Scope</span><span id="opp-scope-val">0</span><span id="opp-scope-pts" class="pts-col">0</span></div>
+                    <div class="score-row"><span>Bonus</span><span id="opp-bonus-val">-</span><span id="opp-bonus-pts" class="pts-col">0</span></div>
+                    <hr>
+                    <div class="score-row total-row"><span style="color:white;">Punti Totali</span><span></span><span id="opp-totale-modal">0</span></div>
+                </div>
+                
+                <div class="score-col my-score">
+                    <h3 id="modal-my-name">Tu</h3>
+                    <div class="score-row header-row"><span>Voci</span><span>Valore</span><span>Punti</span></div>
+                    
+                    <div class="score-row"><span>Carte</span><span id="my-carte-val">0</span><span id="my-carte-pts" class="pts-col">0</span></div>
+                    <div class="score-row"><span>Ori</span><span id="my-denari-val">0</span><span id="my-denari-pts" class="pts-col">0</span></div>
+                    <div class="score-row"><span>Settebello</span><span id="my-settebello-val">0</span><span id="my-settebello-pts" class="pts-col">0</span></div>
+                    <div class="score-row"><span>Primiera</span><span id="my-primiera-val">0</span><span id="my-primiera-pts" class="pts-col">0</span></div>
+                    <div class="score-row"><span>Scope</span><span id="my-scope-val">0</span><span id="my-scope-pts" class="pts-col">0</span></div>
+                    <div class="score-row"><span>Bonus</span><span id="my-bonus-val">-</span><span id="my-bonus-pts" class="pts-col">0</span></div>
+                    <hr>
+                    <div class="score-row total-row"><span style="color:white;">Punti Totali</span><span></span><span id="my-totale-modal">0</span></div>
+                </div>
+            </div>
+
+            <button class="next-round-btn" onclick="requestNextRound()">Prossima Mano</button>
+        </div>
+    </div>
 </body>
 </html>

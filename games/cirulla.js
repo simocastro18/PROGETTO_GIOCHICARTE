@@ -90,7 +90,7 @@ class CirullaGame {
         let acesToConvert = 0;
 
         this.table.forEach(c => {
-            if (c.value === 7 && c.suit === 'h') {
+            if (c.value === 7 && c.suit === 'C') {
                 hasMatta = true; // 7 di cuori
             } else if (c.value === 1) {
                 acesToConvert++; // Contiamo gli assi (partiamo contandoli 1)
@@ -109,34 +109,29 @@ class CirullaGame {
         }
 
         // Calcoliamo le scope
+        // Calcoliamo le scope
         let tableScopes = 0;
 
         if (hasMatta) {
-            // Se abbiamo la matta, ci basta che il resto delle carte sia <= 15 (per fare 15) o <= 30 (per fare 30)
+            // Se abbiamo la matta, ci basta che il resto delle carte sia <= 15 o <= 30
             if (baseSum <= 30 && baseSum >= 20) {
-                // Es: baseSum è 22. La matta vale 8. Totale 30!
                 tableScopes = 2;
-                this.table = []; // Piglia tutto!
             } else if (baseSum <= 15) {
-                // Es: baseSum è 12. La matta vale 3. Totale 15!
                 tableScopes = 1;
-                this.table = []; // Piglia tutto!
             }
         } else {
             // Senza matta, la somma deve essere ESATTA
             if (baseSum === 30) {
                 tableScopes = 2;
-                this.table = []; // Piglia tutto
             } else if (baseSum === 15) {
                 tableScopes = 1;
-                this.table = []; // Piglia tutto
             }
         }
 
-        // Assegniamo le scope al mazziere
+        // Assegniamo le scope al mazziere (Le carte RESTANO in tavola!)
         if (tableScopes > 0) {
             this.players[dealerIndex].scopes += tableScopes;
-            this.lastMessage = `Il mazziere fa ${tableScopes === 1 ? '15' : '30'} in tavola! +${tableScopes} Scopa/e.`;
+            this.lastMessage = `Il mazziere fa ${tableScopes === 1 ? '15' : '30'} in tavola! +${tableScopes} Scopa/e al P${dealerIndex + 1}.`;
         } else {
             this.lastMessage = "Nuova Manche Iniziata!";
         }
@@ -224,6 +219,7 @@ class CirullaGame {
             selectedTableIndices = this.table.map((_, i) => i);
             isValid = true;
             captureType = "ASSO PIGLIATUTTO";
+            
         }
         // B. L'Obbligo dell'Asso (Gioco Asso, C'E' un Asso in tavola)
         else if (cardPlayed.value === 1 && aceOnTable) {
@@ -233,6 +229,7 @@ class CirullaGame {
             } else {
                 return { success: false, message: "Regola dell'Asso: Devi prendere l'Asso presente in tavola!" };
             }
+            
         }
         // C. LA LEGGE DELL'OBBLIGO DI PRESA (Se c'è la stessa carta, DEVI prendere quella e nient'altro)
         else if (exactMatchOnTable && cardPlayed.value !== 1) {
@@ -242,16 +239,19 @@ class CirullaGame {
             } else {
                 return { success: false, message: `Obbligo di presa: c'è già un ${cardPlayed.value} in tavola! Devi prendere quello.` };
             }
+            
         }
         // D. Presa da 15 (Solo se non è scattato l'obbligo di presa qui sopra)
         else if ((cardPlayed.value + tableSum) === 15 && selectedCards.length > 0) {
             isValid = true;
             captureType = "Presa da 15";
+            
         }
         // E. Presa per Somma (es. Gioco 7, prendo 4 e 3)
         else if (tableSum === cardPlayed.value && selectedCards.length > 1) {
             isValid = true;
             captureType = "Presa per somma";
+            
         }
         // F. Scarto
         else if (selectedCards.length === 0) {
@@ -262,6 +262,10 @@ class CirullaGame {
 
         if (!isValid) {
             return { success: false, message: `Mossa non valida (Somma: ${tableSum + cardPlayed.value})` };
+        }
+
+        if (captureType !== "Scarto") {
+            this.lastCaptureIndex = this.currentPlayer;
         }
 
         // --- ESECUZIONE ---
@@ -310,74 +314,94 @@ class CirullaGame {
     }
 
     endManche() {
-        // Assegna carte rimaste
-        if (this.table.length > 0 && this.lastCapturingPlayerIndex !== null) {
-            this.players[this.lastCapturingPlayerIndex].captured.push(...this.table);
+        if (this.table.length > 0 && this.lastCaptureIndex !== -1) {
+            this.players[this.lastCaptureIndex].captured.push(...this.table);
             this.table = [];
+            this.lastMessage = "Le carte in tavola vanno all'ultima presa.";
         }
 
-        // CALCOLO PUNTEGGI DI MANCHE
-        let roundPoints = [0, 0];
         let p1 = this.players[0];
         let p2 = this.players[1];
 
-        // 1. SCOPE (già contate)
-        roundPoints[0] += p1.scopes;
-        roundPoints[1] += p2.scopes;
+        let scontrino = {
+            p1: { carteCount: p1.captured.length, denariCount: 0, settebello: false, primieraScore: 0, scope: p1.scopes, puntiRound: 0, ptCarte: 0, ptDenari: 0, ptPrimiera: 0, ptSettebello: 0 },
+            p2: { carteCount: p2.captured.length, denariCount: 0, settebello: false, primieraScore: 0, scope: p2.scopes, puntiRound: 0, ptCarte: 0, ptDenari: 0, ptPrimiera: 0, ptSettebello: 0 }
+        };
 
-        // 2. CARTE (Chi ne ha di più)
-        if (p1.captured.length > p2.captured.length) roundPoints[0]++;
-        else if (p2.captured.length > p1.captured.length) roundPoints[1]++;
+        // HELPER: Riconosce il seme degli Ori/Quadri in tutti i modi possibili
+        const isOri = (suit) => ['d', 'diamonds', 'quadri', 'denari', 'ori', 'o'].includes(suit.toLowerCase());
 
-        // 3. DENARI (Chi ne ha di più) - 'd' è diamonds
-        const p1Denari = p1.captured.filter(c => c.suit === 'd').length;
-        const p2Denari = p2.captured.filter(c => c.suit === 'd').length;
-        if (p1Denari > p2Denari) roundPoints[0]++;
-        else if (p2Denari > p1Denari) roundPoints[1]++;
-
-        // 4. SETTEBELLO (7 di quadri/denari)
-        const has7belloP1 = p1.captured.some(c => c.suit === 'd' && c.value === 7);
-        if (has7belloP1) roundPoints[0]++;
-        else roundPoints[1]++; // Se non ce l'ha p1 ce l'ha p2 per forza
-
-        // 5. PRIMIERA (Funzione helper)
-        const primieraP1 = this.calculatePrimiera(p1.captured);
-        const primieraP2 = this.calculatePrimiera(p2.captured);
-        if (primieraP1 > primieraP2) roundPoints[0]++;
-        else if (primieraP2 > primieraP1) roundPoints[1]++;
-
-        // AGGIORNA PUNTEGGIO GLOBALE
-        this.globalScores[0] += roundPoints[0];
-        this.globalScores[1] += roundPoints[1];
-
-        this.mancheFinished = true;
-        
-        // Verifica VITTORIA FINALE
-        if (this.globalScores[0] >= 51 || this.globalScores[1] >= 51) {
-             const winner = this.globalScores[0] > this.globalScores[1] ? "GIOCATORE 1" : "GIOCATORE 2";
-             this.lastMessage = `PARTITA FINITA! Vince ${winner}. Punti: ${this.globalScores[0]} - ${this.globalScores[1]}`;
-        } else {
-             this.lastMessage = `Fine Manche. Punteggi Parziali: ${this.globalScores[0]} - ${this.globalScores[1]}. Si continua...`;
-             // Qui potresti resettare automaticamente dopo 5 secondi o aspettare un input
-             // Per ora lo lasciamo in stato "finished" e il client deve chiedere il reset
-             setTimeout(() => this.resetManche(), 5000); // Riavvio automatico manche dopo 5s
-        }
-    }
-
-    calculatePrimiera(cards) {
-        // Trova il valore più alto per ogni seme
-        const maxPerSuit = { 'h': 0, 'd': 0, 'c': 0, 's': 0 };
-        
-        cards.forEach(c => {
-            if (c.primieraValue > maxPerSuit[c.suit]) {
-                maxPerSuit[c.suit] = c.primieraValue;
+        // Contiamo gli Ori e cerchiamo il Settebello
+        p1.captured.forEach(c => {
+            if (isOri(c.suit)) {
+                scontrino.p1.denariCount++;
+                if (c.value === 7) scontrino.p1.settebello = true;
+            }
+        });
+        p2.captured.forEach(c => {
+            if (isOri(c.suit)) {
+                scontrino.p2.denariCount++;
+                if (c.value === 7) scontrino.p2.settebello = true;
             }
         });
 
-        // Somma dei 4 migliori valori (uno per seme)
-        // Nota: Nella primiera classica bisogna avere almeno una carta per seme? 
-        // In molte varianti conta solo la somma totale, se manca un seme vale 0. Usiamo questa.
-        return maxPerSuit['h'] + maxPerSuit['d'] + maxPerSuit['c'] + maxPerSuit['s'];
+        // Calcoliamo la Primiera
+        scontrino.p1.primieraScore = this.calculatePrimiera(p1.captured);
+        scontrino.p2.primieraScore = this.calculatePrimiera(p2.captured);
+
+        // --- ASSEGNAZIONE PUNTI ---
+
+        // Carte
+        if (scontrino.p1.carteCount > 20) { scontrino.p1.ptCarte = 1; scontrino.p1.puntiRound++; }
+        else if (scontrino.p2.carteCount > 20) { scontrino.p2.ptCarte = 1; scontrino.p2.puntiRound++; }
+
+        // Ori
+        if (scontrino.p1.denariCount > 5) { scontrino.p1.ptDenari = 1; scontrino.p1.puntiRound++; }
+        else if (scontrino.p2.denariCount > 5) { scontrino.p2.ptDenari = 1; scontrino.p2.puntiRound++; }
+
+        // Settebello
+        if (scontrino.p1.settebello) { scontrino.p1.ptSettebello = 1; scontrino.p1.puntiRound++; }
+        if (scontrino.p2.settebello) { scontrino.p2.ptSettebello = 1; scontrino.p2.puntiRound++; }
+
+        // Primiera
+        if (scontrino.p1.primieraScore > scontrino.p2.primieraScore) { scontrino.p1.ptPrimiera = 1; scontrino.p1.puntiRound++; }
+        else if (scontrino.p2.primieraScore > scontrino.p1.primieraScore) { scontrino.p2.ptPrimiera = 1; scontrino.p2.puntiRound++; }
+
+        // Scope (Le aggiungiamo dritte ai punti)
+        scontrino.p1.puntiRound += scontrino.p1.scope;
+        scontrino.p2.puntiRound += scontrino.p2.scope;
+
+        // Aggiorniamo il punteggio totale
+        p1.score += scontrino.p1.puntiRound;
+        p2.score += scontrino.p2.puntiRound;
+
+        this.lastRoundStats = scontrino;
+        this.isMancheFinished = true;
+    }
+
+    // --- FUNZIONE DI SUPPORTO: Calcolo Primiera Universale ---
+    calculatePrimiera(cards) {
+        // Valori tradizionali della primiera (inclusi 11,12,13 se usi le figure francesi)
+        const primieraValues = {
+            7: 21, 6: 18, 1: 16, 5: 15, 4: 14, 3: 13, 2: 12, 8: 10, 9: 10, 10: 10, 11: 10, 12: 10, 13: 10
+        };
+        
+        let bestCards = {}; // Creiamo i semi dinamicamente
+        
+        // Trova la carta migliore per ogni seme (a prescindere da come lo chiami!)
+        cards.forEach(card => {
+            let val = primieraValues[card.value] || 0;
+            if (!bestCards[card.suit] || val > bestCards[card.suit]) {
+                bestCards[card.suit] = val;
+            }
+        });
+        
+        // Somma i valori di tutti i semi (i migliori 4)
+        let sum = 0;
+        for (let suit in bestCards) {
+            sum += bestCards[suit];
+        }
+        return sum;
     }
 
     getGameState() {
