@@ -70,18 +70,79 @@ class CirullaGame {
         this.table = [];
         for(let i=0; i<4; i++) this.table.push(this.deck.pop());
         
-        // Regola: Se la somma delle carte in tavola è 15 o 30, il mazziere fa scopa/punti (Regola avanzata, per ora saltiamo per semplicità)
-        // Regola: Se ci sono 2 assi in tavola si rimischia (solo a inizio manche)
-        const aces = this.table.filter(c => c.value === 1).length;
-        if (aces >= 2) {
-            this.lastMessage = "Due Assi in tavola: si rimischia.";
-            this.initializeDeck(); // Reset totale
+        // Regola 1: Due Assi in tavola si rimischia
+        const acesCount = this.table.filter(c => c.value === 1).length;
+        if (acesCount >= 2) {
+            this.lastMessage = "Due Assi in tavola: si rimischia tutto.";
+            this.initializeDeck(); 
             this.shuffle();
             this.startRound();
-            return;
+            return; // Ferma qui e ricomincia
         }
 
-        this.dealCards(true); // true = è la prima mano (per gli accusi)
+        // --- REGOLA 2: SCOPE DEL MAZZIERE (15 e 30) ---
+        // Il mazziere è chi NON inizia il turno
+        const dealerIndex = this.currentPlayer === 0 ? 1 : 0; 
+        
+        // Identifichiamo le carte speciali
+        let hasMatta = false;
+        let baseSum = 0;
+        let acesToConvert = 0;
+
+        this.table.forEach(c => {
+            if (c.value === 7 && c.suit === 'h') {
+                hasMatta = true; // 7 di cuori
+            } else if (c.value === 1) {
+                acesToConvert++; // Contiamo gli assi (partiamo contandoli 1)
+                baseSum += 1;
+            } else {
+                baseSum += c.value;
+            }
+        });
+
+        let bestSum = baseSum;
+
+        // Proviamo a far valere l'Asso 11 invece di 1 (+10 alla somma)
+        // (Avendo escluso i 2 assi, ce n'è al massimo 1)
+        if (acesToConvert === 1 && (baseSum + 10 === 15 || baseSum + 10 === 30 || (hasMatta && baseSum + 10 <= 30))) {
+            baseSum += 10; 
+        }
+
+        // Calcoliamo le scope
+        let tableScopes = 0;
+
+        if (hasMatta) {
+            // Se abbiamo la matta, ci basta che il resto delle carte sia <= 15 (per fare 15) o <= 30 (per fare 30)
+            if (baseSum <= 30 && baseSum >= 20) {
+                // Es: baseSum è 22. La matta vale 8. Totale 30!
+                tableScopes = 2;
+                this.table = []; // Piglia tutto!
+            } else if (baseSum <= 15) {
+                // Es: baseSum è 12. La matta vale 3. Totale 15!
+                tableScopes = 1;
+                this.table = []; // Piglia tutto!
+            }
+        } else {
+            // Senza matta, la somma deve essere ESATTA
+            if (baseSum === 30) {
+                tableScopes = 2;
+                this.table = []; // Piglia tutto
+            } else if (baseSum === 15) {
+                tableScopes = 1;
+                this.table = []; // Piglia tutto
+            }
+        }
+
+        // Assegniamo le scope al mazziere
+        if (tableScopes > 0) {
+            this.players[dealerIndex].scopes += tableScopes;
+            this.lastMessage = `Il mazziere fa ${tableScopes === 1 ? '15' : '30'} in tavola! +${tableScopes} Scopa/e.`;
+        } else {
+            this.lastMessage = "Nuova Manche Iniziata!";
+        }
+
+        // Distribuiamo le mani ai giocatori
+        this.dealCards(true); 
     }
 
     dealCards(isFirstHandOfManche = false) {
