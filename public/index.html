@@ -205,23 +205,37 @@
 </head>
 <body>
 
-    <div id="transition-overlay">
-        <div>📱 PASSA IL DISPOSITIVO</div>
-        <div id="next-player-name" style="font-size: 0.6em; margin-top: 20px; color: white;">...</div>
-    </div>
-
     <div id="lobby-screen">
         <h1>Cirulla</h1>
-        <button onclick="joinGame('locale')" style="padding: 20px; margin: 10px; font-size: 18px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 5px;">GIOCA IN LOCALE</button>
-        <button onclick="joinGame('online')" style="padding: 20px; margin: 10px; font-size: 18px; cursor: pointer; background: #e74c3c; color: white; border: none; border-radius: 5px;">GIOCA ONLINE MULTIPLAYER</button>
+        <input type="text" id="player-name" placeholder="Inserisci il tuo nome..." 
+               style="padding: 15px; font-size: 18px; border-radius: 5px; margin-bottom: 20px; text-align: center; width: 80%; max-width: 300px;"><br>
+
+        <div id="step-1-mode">
+            <button onclick="selectMode('bot')" style="padding: 20px; margin: 10px; font-size: 18px; cursor: pointer; background: #f39c12; color: white; border: none; border-radius: 5px;">GIOCA CONTRO AI</button>
+            <button onclick="selectMode('online2')" style="padding: 20px; margin: 10px; font-size: 18px; cursor: pointer; background: #3498db; color: white; border: none; border-radius: 5px;">MULTIPLAYER 2</button>
+            <button onclick="selectMode('online4')" style="padding: 20px; margin: 10px; font-size: 18px; cursor: pointer; background: #e74c3c; color: white; border: none; border-radius: 5px;">MULTIPLAYER 4</button>
+        </div>
+
+        <div id="step-2-length" style="display:none;">
+            <h2 style="color: #f1c40f;">Scegli la durata:</h2>
+            <button onclick="joinGame('veloce')" style="padding: 20px; margin: 10px; font-size: 18px; cursor: pointer; background: #2ecc71; color: white; border: none; border-radius: 5px;">PARTITA VELOCE (1 Mano)</button>
+            <button onclick="joinGame('51')" style="padding: 20px; margin: 10px; font-size: 18px; cursor: pointer; background: #9b59b6; color: white; border: none; border-radius: 5px;">PARTITA AI 51 PUNTI</button>
+        </div>
     </div>
 
     <div id="game-screen" style="display:none;">
-        <h2 id="status-msg">In attesa...</h2>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80px; margin-bottom: 10px;">
+            <h2 id="status-msg" style="margin: 5px 0;">In attesa...</h2>
+            
+            <div id="last-played-container" style="display: none; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 10px; border: 1px solid #444;">
+                <span style="font-size: 14px; color: #f1c40f; margin-right: 15px; text-transform: uppercase;">Ultima giocata:</span>
+                <div id="last-card-visual" style="height: 60px;"></div>
+            </div>
+        </div>
 
         <div class="player-area" id="area-p2">
             <h3 id="p2-info">GIOCATORE 2</h3>
-            <div id="p2-hand" class="hidden-hand"></div>
+            <div id="p2-hand"></div>
         </div>
 
         <div class="table-area">
@@ -231,7 +245,7 @@
 
         <div class="player-area" id="area-p1">
             <h3 id="p1-info">GIOCATORE 1</h3>
-            <div id="p1-hand" class="hidden-hand"></div>
+            <div id="p1-hand"></div>
         </div>
     </div>
 
@@ -244,7 +258,7 @@
             <div class="scoreboard-grid">
                 <div class="score-col">
                     <h3 id="modal-opp-name">Avversario</h3>
-                    <div class="score-row header-row"><span>Voci</span><span>Valore</span><span>Punti</span></div>
+                    <div class="score-row header-row"><span>Voci</span><span>Numero</span><span>Punti</span></div>
                     
                     <div class="score-row"><span>Carte</span><span id="opp-carte-val">0</span><span id="opp-carte-pts" class="pts-col">0</span></div>
                     <div class="score-row"><span>Ori</span><span id="opp-denari-val">0</span><span id="opp-denari-pts" class="pts-col">0</span></div>
@@ -258,7 +272,7 @@
                 
                 <div class="score-col my-score">
                     <h3 id="modal-my-name">Tu</h3>
-                    <div class="score-row header-row"><span>Voci</span><span>Valore</span><span>Punti</span></div>
+                    <div class="score-row header-row"><span>Voci</span><span>Numero</span><span>Punti</span></div>
                     
                     <div class="score-row"><span>Carte</span><span id="my-carte-val">0</span><span id="my-carte-pts" class="pts-col">0</span></div>
                     <div class="score-row"><span>Ori</span><span id="my-denari-val">0</span><span id="my-denari-pts" class="pts-col">0</span></div>

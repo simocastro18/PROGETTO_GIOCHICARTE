@@ -1,7 +1,11 @@
 class CirullaGame {
-    constructor() {
+    constructor(length = '51') {
         // Punteggi totali della "Partita ai 51"
         this.globalScores = [0, 0]; 
+        this.gameLength = length; // Salva se è 'veloce' o '51'
+        
+        // --- IL MAZZIERE CASUALE (Avviene SOLO una volta a partita all'inizio) ---
+        this.startingPlayer = Math.floor(Math.random() * 2); 
         
         // Inizializza la prima manche
         this.resetManche();
@@ -11,23 +15,27 @@ class CirullaGame {
     resetManche() {
         this.deck = [];
         this.players = [
-            { id: 0, hand: [], captured: [], scopes: 0, tempPoints: 0 },
-            { id: 1, hand: [], captured: [], scopes: 0, tempPoints: 0 }
+            { id: 0, hand: [], captured: [], scopes: 0, tempPoints: 0, isHandRevealed: false, bonusPoints: 0, bonusName: "-" },
+            { id: 1, hand: [], captured: [], scopes: 0, tempPoints: 0, isHandRevealed: false, bonusPoints: 0, bonusName: "-" }
         ];
         this.table = [];
-        this.currentPlayer = 0; // Inizia sempre chi ha vinto o random (qui facciamo 0 fisso per ora)
+        
+        // Chi inizia questa specifica smazzata?
+        this.currentPlayer = this.startingPlayer; 
+        
         this.lastMessage = "Nuova Manche Iniziata!";
+        this.lastPlayedCard = null;
         this.gameStarted = true;
         this.lastCapturingPlayerIndex = null;
         this.mancheFinished = false;
 
         this.initializeDeck();
         this.shuffle();
-        this.startRound(); // Distribuisce e mette in tavola
+        this.startRound(); 
     }
 
     initializeDeck() {
-        const suits = ['C', 'D', 'F', 'P']; // hearts, diamonds, clubs, spades
+        const suits = ['C', 'D', 'F', 'P']; // cuori,denari,fiori,picche
         const values = [
             { num: 1, label: 'A' }, { num: 2, label: '2' }, { num: 3, label: '3' },
             { num: 4, label: '4' }, { num: 5, label: '5' }, { num: 6, label: '6' },
@@ -84,7 +92,7 @@ class CirullaGame {
         // Il mazziere è chi NON inizia il turno
         const dealerIndex = this.currentPlayer === 0 ? 1 : 0; 
         
-        // Identifichiamo le carte speciali
+        // Identifico le carte speciali
         let hasMatta = false;
         let baseSum = 0;
         let acesToConvert = 0;
@@ -93,7 +101,7 @@ class CirullaGame {
             if (c.value === 7 && c.suit === 'C') {
                 hasMatta = true; // 7 di cuori
             } else if (c.value === 1) {
-                acesToConvert++; // Contiamo gli assi (partiamo contandoli 1)
+                acesToConvert++; // Conto gli assi (partiamo contandoli 1)
                 baseSum += 1;
             } else {
                 baseSum += c.value;
@@ -102,18 +110,18 @@ class CirullaGame {
 
         let bestSum = baseSum;
 
-        // Proviamo a far valere l'Asso 11 invece di 1 (+10 alla somma)
+        // Provo a far valere l'Asso 11 invece di 1 (+10 alla somma)
         // (Avendo escluso i 2 assi, ce n'è al massimo 1)
         if (acesToConvert === 1 && (baseSum + 10 === 15 || baseSum + 10 === 30 || (hasMatta && baseSum + 10 <= 30))) {
             baseSum += 10; 
         }
 
-        // Calcoliamo le scope
-        // Calcoliamo le scope
+        // Calcolo le scope
+        // Calcolo le scope
         let tableScopes = 0;
 
         if (hasMatta) {
-            // Se abbiamo la matta, ci basta che il resto delle carte sia <= 15 o <= 30
+            // Se ho la matta, ci basta che il resto delle carte sia <= 15 o <= 30
             if (baseSum <= 30 && baseSum >= 20) {
                 tableScopes = 2;
             } else if (baseSum <= 15) {
@@ -128,7 +136,7 @@ class CirullaGame {
             }
         }
 
-        // Assegniamo le scope al mazziere (Le carte RESTANO in tavola!)
+        // Assegno le scope al mazziere (Le carte RESTANO in tavola!)
         if (tableScopes > 0) {
             this.players[dealerIndex].scopes += tableScopes;
             this.lastMessage = `Il mazziere fa ${tableScopes === 1 ? '15' : '30'} in tavola! +${tableScopes} Scopa/e al P${dealerIndex + 1}.`;
@@ -136,11 +144,14 @@ class CirullaGame {
             this.lastMessage = "Nuova Manche Iniziata!";
         }
 
-        // Distribuiamo le mani ai giocatori
+        // Distribuisco le mani ai giocatori
         this.dealCards(true); 
     }
 
     dealCards(isFirstHandOfManche = false) {
+
+        this.players[0].isHandRevealed = false;
+        this.players[1].isHandRevealed = false;
         // 3 carte a testa
         for (let i = 0; i < 3; i++) {
             this.players[0].hand.push(this.deck.pop());
@@ -158,34 +169,65 @@ class CirullaGame {
         const hand = this.players[playerIndex].hand;
         if (hand.length !== 3) return;
 
-        // Calcolo somma valori (Attenzione: Figure valgono 10 per l'accuso)
-        let sum = 0;
-        let values = [];
-        
+        let hasMatta = false;
+        let otherCards = [];
+
+        // 1. Analizziamo la mano: c'è la Matta?
         hand.forEach(c => {
-            let val = (c.value >= 8) ? 10 : c.value; // J,Q,K valgono 10 per la somma < 9
-            sum += val;
-            values.push(c.value);
+            if (c.value === 7 && c.suit === 'C') { // 'C' = Cuori
+                hasMatta = true;
+            } else {
+                otherCards.push(c);
+            }
         });
+
+        // Funzione helper: le figure (8,9,10) valgono 10 per il calcolo della Piccola
+        const getVal = (c) => (c.value >= 8) ? 10 : c.value;
 
         let bonusScopes = 0;
         let msg = "";
 
-        // 1. "GRANDE" (Cirullone): 3 carte uguali
-        if (values[0] === values[1] && values[1] === values[2]) {
-            bonusScopes = 10;
-            msg = "ha il GRANDE (3 carte uguali)! +10 Scope";
-        }
-        // 2. "PICCOLA" (Buona / Cirulla): Somma <= 9
-        else if (sum <= 9) {
-            bonusScopes = 3;
-            msg = `ha la BUONA (Somma ${sum})! +3 Scope`;
+        // --- CASO 1: ABBIAMO LA MATTA IN MANO ---
+        if (hasMatta) {
+            let c1 = otherCards[0];
+            let c2 = otherCards[1];
+
+            // A. Precedenza assoluta alla GRANDE: Le altre due carte sono uguali?
+            if (c1.value === c2.value) {
+                bonusScopes = 10;
+                msg = "ha il GRANDE grazie alla Matta! +10 Scope";
+            } 
+            // B. Se non è Grande, proviamo la PICCOLA: La Matta vale 1 per abbassare la somma!
+            else {
+                let sum2 = getVal(c1) + getVal(c2);
+                if (sum2 + 1 <= 9) {
+                    bonusScopes = 3;
+                    msg = `ha la BUONA con la Matta (Somma ${sum2 + 1})! +3 Scope`;
+                }
+            }
+        } 
+        // --- CASO 2: NESSUNA MATTA (Regole standard) ---
+        else {
+            let sum = getVal(hand[0]) + getVal(hand[1]) + getVal(hand[2]);
+
+            // A. Precedenza assoluta alla GRANDE: 3 carte uguali
+            if (hand[0].value === hand[1].value && hand[1].value === hand[2].value) {
+                bonusScopes = 10;
+                msg = "ha il GRANDE (3 carte uguali)! +10 Scope";
+            }
+            // B. Altrimenti PICCOLA: Somma <= 9
+            else if (sum <= 9) {
+                bonusScopes = 3;
+                msg = `ha la BUONA (Somma ${sum})! +3 Scope`;
+            }
         }
 
+        // --- ESECUZIONE DEL BONUS ---
+        // Se abbiamo fatto un Accuso, ci prendiamo le scope e scopriamo le carte!
         if (bonusScopes > 0) {
             this.players[playerIndex].scopes += bonusScopes;
-            // Aggiungiamo al messaggio globale
-            this.lastMessage += ` G${playerIndex+1} ${msg}. `;
+            this.players[playerIndex].isHandRevealed = true; // Scopre le carte all'avversario
+            this.lastMessage += ` G${playerIndex+1} ${msg} `;
         }
     }
 
@@ -248,7 +290,8 @@ class CirullaGame {
             
         }
         // E. Presa per Somma (es. Gioco 7, prendo 4 e 3)
-        else if (tableSum === cardPlayed.value && selectedCards.length > 1) {
+        // FIX: Le figure (valore 8, 9, 10) NON possono prendere per somma!
+        else if (tableSum === cardPlayed.value && selectedCards.length > 1 && cardPlayed.value <= 7) {
             isValid = true;
             captureType = "Presa per somma";
             
@@ -269,33 +312,33 @@ class CirullaGame {
         }
 
         // --- ESECUZIONE ---
+        
         player.hand.splice(cardIndex, 1);
+        
+        this.lastPlayedCard = cardPlayed; // <--- IL SERVER SI MEMORIZZA LA CARTA!
+        const pName = `Il Giocatore ${this.currentPlayer + 1}`; // Per il messaggio
 
         if (captureType === "Scarto") {
             this.table.push(cardPlayed);
-            this.lastMessage = `Ha scartato un ${cardPlayed.label}`; // Usa label breve per pulizia
+            this.lastMessage = `${pName} scarta.`; 
         } else {
             player.captured.push(cardPlayed, ...selectedCards);
             this.lastCapturingPlayerIndex = this.currentPlayer;
             this.table = this.table.filter((_, index) => !selectedTableIndices.includes(index));
             
-            // Messaggio
-            if (captureType === "ASSO PIGLIATUTTO") this.lastMessage = "ASSO PIGLIATUTTO!";
-            else this.lastMessage = "Presa!";
+            // Messaggio più chiaro
+            if (captureType === "ASSO PIGLIATUTTO") this.lastMessage = `${pName} fa ASSO PIGLIATUTTO!`;
+            else this.lastMessage = `${pName} prende!`;
 
             // Scopa?
-            // --- INIZIO FIX SCOPA ---
-            // Capiamo se è letteralmente l'ultima carta della smazzata
             const isVeryLastCard = (this.deck.length === 0 && 
                                     this.players[0].hand.length === 0 && 
                                     this.players[1].hand.length === 0);
 
-            // Scopa? (Tavolo vuoto e NON è l'ultima carta)
             if (this.table.length === 0 && !isVeryLastCard) {
                 player.scopes++;
-                this.lastMessage += " SCOPA!";
+                this.lastMessage += " E FA SCOPA! 🧹";
             }
-            // --- FINE FIX SCOPA ---
         }
 
         // Cambio Turno
@@ -314,6 +357,7 @@ class CirullaGame {
     }
 
     endManche() {
+        // 1. Assegna le carte rimaste in tavola all'ultimo che ha preso
         if (this.table.length > 0 && this.lastCaptureIndex !== -1) {
             this.players[this.lastCaptureIndex].captured.push(...this.table);
             this.table = [];
@@ -323,84 +367,137 @@ class CirullaGame {
         let p1 = this.players[0];
         let p2 = this.players[1];
 
-        let scontrino = {
-            p1: { carteCount: p1.captured.length, denariCount: 0, settebello: false, primieraScore: 0, scope: p1.scopes, puntiRound: 0, ptCarte: 0, ptDenari: 0, ptPrimiera: 0, ptSettebello: 0 },
-            p2: { carteCount: p2.captured.length, denariCount: 0, settebello: false, primieraScore: 0, scope: p2.scopes, puntiRound: 0, ptCarte: 0, ptDenari: 0, ptPrimiera: 0, ptSettebello: 0 }
+        // --- CALCOLO BONUS (Piccola e Grande) ---
+        const calcBonus = (captured) => {
+            let pts = 0;
+            let name = "-";
+            
+            // Estraiamo solo i valori dei Denari (Ori)
+            const ori = captured.filter(c => c.suit === 'D').map(c => c.value);
+            
+            // GRANDE: Fante (8), Donna (9), Re (10)
+            if (ori.includes(8) && ori.includes(9) && ori.includes(10)) {
+                pts += 5;
+                name = "Grande";
+            }
+            
+            // PICCOLA: Asso(1), 2, 3 (più eventuali 4, 5, 6)
+            let picPts = 0;
+            if (ori.includes(1) && ori.includes(2) && ori.includes(3)) {
+                picPts = 3;
+                if (ori.includes(4)) {
+                    picPts = 4;
+                    if (ori.includes(5)) {
+                        picPts = 5;
+                        if (ori.includes(6)) picPts = 6;
+                    }
+                }
+            }
+            
+            if (picPts > 0) {
+                pts += picPts;
+                // Costruiamo la scritta esatta che hai chiesto
+                let picName = picPts === 3 ? "Piccola" : `Piccola (${picPts})`;
+                if (name === "-") name = picName;
+                else name += ` + ${picName}`;
+            }
+            
+            return { pts, name };
         };
 
-        // HELPER: Riconosce il seme degli Ori/Quadri in tutti i modi possibili
-        const isOri = (suit) => ['d', 'diamonds', 'quadri', 'denari', 'ori', 'o'].includes(suit.toLowerCase());
+        let b1 = calcBonus(p1.captured);
+        let b2 = calcBonus(p2.captured);
 
-        // Contiamo gli Ori e cerchiamo il Settebello
+        // 2. Prepariamo lo Scontrino inserendo i nuovi Bonus
+        let scontrino = {
+            p1: { carteCount: p1.captured.length, denariCount: 0, settebello: false, primieraScore: 0, scope: p1.scopes, bonusPts: b1.pts, bonusName: b1.name, puntiRound: 0, ptCarte: 0, ptDenari: 0, ptPrimiera: 0, ptSettebello: 0 },
+            p2: { carteCount: p2.captured.length, denariCount: 0, settebello: false, primieraScore: 0, scope: p2.scopes, bonusPts: b2.pts, bonusName: b2.name, puntiRound: 0, ptCarte: 0, ptDenari: 0, ptPrimiera: 0, ptSettebello: 0 }
+        };
+
+        // 3. Contiamo gli Ori e il Settebello
         p1.captured.forEach(c => {
-            if (isOri(c.suit)) {
+            if (c.suit === 'D') { 
                 scontrino.p1.denariCount++;
                 if (c.value === 7) scontrino.p1.settebello = true;
             }
         });
         p2.captured.forEach(c => {
-            if (isOri(c.suit)) {
+            if (c.suit === 'D') {
                 scontrino.p2.denariCount++;
                 if (c.value === 7) scontrino.p2.settebello = true;
             }
         });
 
-        // Calcoliamo la Primiera
+        // 4. Calcoliamo la Primiera
         scontrino.p1.primieraScore = this.calculatePrimiera(p1.captured);
         scontrino.p2.primieraScore = this.calculatePrimiera(p2.captured);
 
-        // --- ASSEGNAZIONE PUNTI ---
-
-        // Carte
+        // --- 5. ASSEGNAZIONE PUNTI ---
         if (scontrino.p1.carteCount > 20) { scontrino.p1.ptCarte = 1; scontrino.p1.puntiRound++; }
         else if (scontrino.p2.carteCount > 20) { scontrino.p2.ptCarte = 1; scontrino.p2.puntiRound++; }
 
-        // Ori
         if (scontrino.p1.denariCount > 5) { scontrino.p1.ptDenari = 1; scontrino.p1.puntiRound++; }
         else if (scontrino.p2.denariCount > 5) { scontrino.p2.ptDenari = 1; scontrino.p2.puntiRound++; }
 
-        // Settebello
         if (scontrino.p1.settebello) { scontrino.p1.ptSettebello = 1; scontrino.p1.puntiRound++; }
         if (scontrino.p2.settebello) { scontrino.p2.ptSettebello = 1; scontrino.p2.puntiRound++; }
 
-        // Primiera
         if (scontrino.p1.primieraScore > scontrino.p2.primieraScore) { scontrino.p1.ptPrimiera = 1; scontrino.p1.puntiRound++; }
         else if (scontrino.p2.primieraScore > scontrino.p1.primieraScore) { scontrino.p2.ptPrimiera = 1; scontrino.p2.puntiRound++; }
 
-        // Scope (Le aggiungiamo dritte ai punti)
+        // 6. Aggiungiamo le Scope e i BONUS!
         scontrino.p1.puntiRound += scontrino.p1.scope;
         scontrino.p2.puntiRound += scontrino.p2.scope;
+        
+        scontrino.p1.puntiRound += scontrino.p1.bonusPts; // <-- Aggiunto il bonus finale
+        scontrino.p2.puntiRound += scontrino.p2.bonusPts; // <-- Aggiunto il bonus finale
 
-        // Aggiorniamo il punteggio totale
-        p1.score += scontrino.p1.puntiRound;
-        p2.score += scontrino.p2.puntiRound;
+        // 7. Aggiorniamo i punti globali della partita
+        this.globalScores[0] += scontrino.p1.puntiRound;
+        this.globalScores[1] += scontrino.p2.puntiRound;
 
         this.lastRoundStats = scontrino;
         this.isMancheFinished = true;
+        
+        // CONTROLLO VITTORIA FINE MANO
+        if (this.gameLength === 'veloce') {
+            let winner = this.globalScores[0] > this.globalScores[1] ? 1 : (this.globalScores[1] > this.globalScores[0] ? 2 : 0);
+            if (winner === 0) this.lastMessage = "PARTITA VELOCE FINITA IN PAREGGIO!";
+            else this.lastMessage = `PARTITA FINITA! HA VINTO IL GIOCATORE ${winner}!`;
+        } else if (this.gameLength === '51') {
+            if (this.globalScores[0] >= 51 || this.globalScores[1] >= 51) {
+                let winner = this.globalScores[0] > this.globalScores[1] ? 1 : 2;
+                this.lastMessage = `PARTITA FINITA! HA VINTO IL GIOCATORE ${winner} superando i 51 punti!`;
+            }
+        }
     }
 
     // --- FUNZIONE DI SUPPORTO: Calcolo Primiera Universale ---
     calculatePrimiera(cards) {
-        // Valori tradizionali della primiera (inclusi 11,12,13 se usi le figure francesi)
+        // Valori tradizionali della primiera
+        // Nel tuo mazzo J=8, Q=9, K=10, quindi i valori sono mappati perfetti!
         const primieraValues = {
-            7: 21, 6: 18, 1: 16, 5: 15, 4: 14, 3: 13, 2: 12, 8: 10, 9: 10, 10: 10, 11: 10, 12: 10, 13: 10
+            7: 21, 6: 18, 1: 16, 5: 15, 4: 14, 3: 13, 2: 12, 8: 10, 9: 10, 10: 10
         };
         
-        let bestCards = {}; // Creiamo i semi dinamicamente
+        let bestCards = {}; // Oggetto vuoto, i semi si creano da soli!
         
-        // Trova la carta migliore per ogni seme (a prescindere da come lo chiami!)
+        // Trova la carta migliore per ogni seme che hai tra le prese
         cards.forEach(card => {
             let val = primieraValues[card.value] || 0;
+            
+            // Se non avevamo ancora registrato questo seme, o se questa carta vale di più:
             if (!bestCards[card.suit] || val > bestCards[card.suit]) {
                 bestCards[card.suit] = val;
             }
         });
         
-        // Somma i valori di tutti i semi (i migliori 4)
+        // Ora sommiamo i valori migliori di tutti i semi che hai raccolto
         let sum = 0;
         for (let suit in bestCards) {
             sum += bestCards[suit];
         }
+        
         return sum;
     }
 
@@ -421,7 +518,9 @@ class CirullaGame {
                 scopes: this.players[1].scopes,
                 totalScore: this.globalScores[1] // <--- Nuova info per il client
             },
-            isMancheFinished: this.mancheFinished
+            isMancheFinished: this.mancheFinished,
+            lastRoundStats: this.lastRoundStats,
+            lastPlayedCard: this.lastPlayedCard
         };
     }
 }
