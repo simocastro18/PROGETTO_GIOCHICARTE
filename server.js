@@ -9,6 +9,9 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.static('public'));
+app.get('/gameroom', (req, res) => {
+    res.sendFile(__dirname + '/public/gameroom.html');
+});
 
 // Stato del server
 let rooms = {}; 
