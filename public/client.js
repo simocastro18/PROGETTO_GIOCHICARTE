@@ -5,24 +5,27 @@ let gameMode = "";
 let selectedTableCards = []; 
 let isTransitioning = false; 
 
-// 1. Gestione della carta nascosta (Dorso)
 const createCard = (card) => {
     const div = document.createElement('div');
     div.className = 'card';
     
+    // Se la carta è coperta (Dorso)
     if (card.hidden) {
         div.style.backgroundImage = `url('/cards_franc/back-red.png')`;
-        div.style.backgroundSize = 'cover';
+        div.style.backgroundSize = '100% 100%'; // Adatta perfettamente al bordo
         div.style.cursor = 'default';
         return div;
     }
 
+    // Se la carta è scoperta (Immagini singole originali)
     const fileName = `${card.suit.toUpperCase()}_${card.value}.png`;
     div.style.backgroundImage = `url('/cards_franc/${fileName}')`;
-    div.style.backgroundSize = 'contain';
+    
+    div.style.backgroundSize = '100% 100%'; // Forza l'immagine a stare dentro 75x110px
     div.style.backgroundRepeat = 'no-repeat';
     div.style.backgroundPosition = 'center';
     div.style.backgroundColor = 'transparent'; 
+    
     return div;
 };
 
@@ -60,6 +63,11 @@ socket.on('error', (data) => {
     alert("⚠️ " + data.message);
     selectedTableCards = [];
     document.querySelectorAll('.table-card').forEach(el => el.classList.remove('selected'));
+});
+
+socket.on('playerDisconnected', (data) => {
+    alert("⚠️ " + data.message);
+    window.location.reload(); // Ricarica la pagina per riportare l'utente alla lobby
 });
 
 function toggleTableCard(index, divElement) {

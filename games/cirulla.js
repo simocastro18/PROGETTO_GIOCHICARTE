@@ -89,60 +89,41 @@ class CirullaGame {
         }
 
         // --- REGOLA 2: SCOPE DEL MAZZIERE (15 e 30) ---
-        // Il mazziere è chi NON inizia il turno
         const dealerIndex = this.currentPlayer === 0 ? 1 : 0; 
         
-        // Identifico le carte speciali
-        let hasMatta = false;
-        let baseSum = 0;
-        let acesToConvert = 0;
+        // Calcoliamo TUTTE le somme possibili generate dalle 4 carte
+        let possibleSums = new Set([0]);
 
         this.table.forEach(c => {
-            if (c.value === 7 && c.suit === 'C') {
-                hasMatta = true; // 7 di cuori
-            } else if (c.value === 1) {
-                acesToConvert++; // Conto gli assi (partiamo contandoli 1)
-                baseSum += 1;
-            } else {
-                baseSum += c.value;
-            }
+            let nextSums = new Set();
+            possibleSums.forEach(s => {
+                if (c.value === 7 && c.suit === 'C') {
+                    // La Matta può valere da 1 a 10
+                    for(let v = 1; v <= 10; v++) nextSums.add(s + v);
+                } else if (c.value === 1) {
+                    // L'Asso può valere 1 o 11
+                    nextSums.add(s + 1);
+                    nextSums.add(s + 11);
+                } else {
+                    // Carta normale
+                    nextSums.add(s + c.value);
+                }
+            });
+            possibleSums = nextSums; // Aggiorna le somme
         });
 
-        let bestSum = baseSum;
-
-        // Provo a far valere l'Asso 11 invece di 1 (+10 alla somma)
-        // (Avendo escluso i 2 assi, ce n'è al massimo 1)
-        if (acesToConvert === 1 && (baseSum + 10 === 15 || baseSum + 10 === 30 || (hasMatta && baseSum + 10 <= 30))) {
-            baseSum += 10; 
-        }
-
-        // Calcolo le scope
-        // Calcolo le scope
         let tableScopes = 0;
-
-        if (hasMatta) {
-            // Se ho la matta, ci basta che il resto delle carte sia <= 15 o <= 30
-            if (baseSum <= 30 && baseSum >= 20) {
-                tableScopes = 2;
-            } else if (baseSum <= 15) {
-                tableScopes = 1;
-            }
-        } else {
-            // Senza matta, la somma deve essere ESATTA
-            if (baseSum === 30) {
-                tableScopes = 2;
-            } else if (baseSum === 15) {
-                tableScopes = 1;
-            }
-        }
-
-        // Assegno le scope al mazziere (Le carte RESTANO in tavola!)
-        if (tableScopes > 0) {
-            this.players[dealerIndex].scopes += tableScopes;
-            this.lastMessage = `Il mazziere fa ${tableScopes === 1 ? '15' : '30'} in tavola! +${tableScopes} Scopa/e al P${dealerIndex + 1}.`;
+        if (possibleSums.has(30)) {
+            tableScopes = 2;
+            this.lastMessage = `Il mazziere fa 30 in tavola! +2 Scope al P${dealerIndex + 1}.`;
+        } else if (possibleSums.has(15)) {
+            tableScopes = 1;
+            this.lastMessage = `Il mazziere fa 15 in tavola! +1 Scopa al P${dealerIndex + 1}.`;
         } else {
             this.lastMessage = "Nuova Manche Iniziata!";
         }
+
+        if (tableScopes > 0) this.players[dealerIndex].scopes += tableScopes;
 
         // Distribuisco le mani ai giocatori
         this.dealCards(true); 

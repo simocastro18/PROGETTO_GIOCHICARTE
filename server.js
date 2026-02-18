@@ -9,9 +9,25 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.static('public'));
-app.get('/gameroom', (req, res) => {
+
+// ==============================================================
+// 🔄 SWITCH AMBIENTE: Scommenta la modalità che vuoi utilizzare
+// ==============================================================
+
+// --- MODALITÀ 1: SVILUPPO LOCALE (PC) ---
+// Quando apri http://localhost:3000/ carica subito il gioco
+app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/gameroom.html');
 });
+
+
+// --- MODALITÀ 2: RASPBERRY PI (PRODUZIONE) ---
+// Risponde solo sul percorso /gameroom (utile se hai un reverse proxy o un menu principale sul Rasp)
+/* app.get('/gameroom', (req, res) => {
+    res.sendFile(__dirname + '/public/gameroom.html');
+});
+*/
+// ==============================================================
 
 // Stato del server
 let rooms = {}; 
@@ -182,13 +198,12 @@ io.on('connection', (socket) => {
             const playerIndex = room.players.findIndex(p => p.socketId === socket.id);
             
             if (playerIndex !== -1) {
-                room.players.splice(playerIndex, 1);
-                io.to(roomName).emit('playerDisconnected', { message: 'Avversario disconnesso.' });
+                // Avvisa l'altro giocatore (se è umano)
+                io.to(roomName).emit('playerDisconnected', { message: 'L\'avversario si è disconnesso. La partita è terminata.' });
                 
-                if (room.players.length === 0) {
-                    delete rooms[roomName];
-                    waitingRooms = waitingRooms.filter(r => r.id !== roomName);
-                }
+                // Distruggi completamente la stanza
+                delete rooms[roomName];
+                waitingRooms = waitingRooms.filter(r => r.id !== roomName);
                 break;
             }
         }
@@ -269,6 +284,14 @@ function sendGameStateToPlayers(roomName) {
         };
 
         io.to(player.socketId).emit('updateTable', personalizedState);
+
+        // Trucco anti-spam: confrontiamo lo stato prima di inviarlo
+        const stateString = JSON.stringify(personalizedState);
+        
+        if (player.lastSentState !== stateString) {
+            io.to(player.socketId).emit('updateTable', personalizedState);
+            player.lastSentState = stateString; // Memorizza per la prossima volta
+        }
     });
 }
 

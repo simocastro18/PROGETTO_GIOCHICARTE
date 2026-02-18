@@ -37,14 +37,20 @@ class CirullaBot {
                 };
             }
 
-            // D. Regola: Presa da 15 (La carta + una combinazione sul tavolo fa 15?)
+            // D. Regola: Presa da 15
             let combo15 = this.findCombo(table, 15 - card.value);
             if (combo15) {
-                return { 
-                    cardIndex: i, 
-                    selectedTableIndices: combo15,
-                    reason: "Presa da 15"
-                };
+                // Se la carta giocata è una figura, assicuriamoci che non stia prendendo combinazioni vietate
+                // (In molte varianti, una figura per fare 15 può prendere SOLO un'altra carta singola, es: 8 prende 7. Non 8 prende 4+3)
+                if (card.value >= 8 && combo15.length > 1) {
+                    // Evita la mossa se la tua variante vieta alle figure di prendere più carte per fare 15
+                } else {
+                    return { 
+                        cardIndex: i, 
+                        selectedTableIndices: combo15,
+                        reason: "Presa da 15"
+                    };
+                }
             }
 
             // E. Regola: Presa per Somma (La carta è uguale alla somma?)
