@@ -21,7 +21,6 @@
   "homepage": "https://github.com/simocastro18/PROGETTO_GIOCHICARTE#readme",
   "dependencies": {
     "express": "^5.1.0",
-    "sharp": "^0.34.5",
     "socket.io": "^4.8.1"
   }
 }
