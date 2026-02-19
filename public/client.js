@@ -5,19 +5,20 @@ let gameMode = "";
 let selectedTableCards = []; 
 let isTransitioning = false; 
 
-// 1. Gestione della carta nascosta (Dorso)
+// === CREAZIONE CARTA (COMPATIBILE CON NUOVO DESIGN) ===
 const createCard = (card) => {
     const div = document.createElement('div');
     div.className = 'card';
     
     if (card.hidden) {
+        div.setAttribute('data-hidden', 'true');
         div.style.backgroundImage = `url('/cards_franc/back-red.png')`;
         div.style.backgroundSize = 'cover';
         div.style.cursor = 'default';
         return div;
     }
 
-    const fileName = `${card.suit.toUpperCase()}_${card.value}.png`;
+    const fileName = `${card.suit}_${card.value}.png`;
     div.style.backgroundImage = `url('/cards_franc/${fileName}')`;
     div.style.backgroundSize = 'contain';
     div.style.backgroundRepeat = 'no-repeat';
@@ -37,7 +38,7 @@ function selectMode(mode) {
 function joinGame(length) {
     let pName = document.getElementById('player-name').value.trim() || "Ospite";
     document.getElementById('lobby-screen').style.display = 'none';
-    document.getElementById('game-screen').style.display = 'block';
+    document.getElementById('game-screen').style.display = 'flex'; // CAMBIATO: flex invece di block
     gameMode = selectedMode;
     
     socket.emit('joinGame', { gameType: 'cirulla', mode: selectedMode, playerName: pName, gameLength: length });
@@ -75,23 +76,29 @@ function toggleTableCard(index, divElement) {
     }
 }
 
-// IL REGISTA GRAFICO DELLA PARTITA
+// === RENDERING PRINCIPALE (AGGIORNATO PER NUOVO DESIGN) ===
 function renderGame(state) {
     const tableDiv = document.getElementById('table-cards');
     const bottomHandDiv = document.getElementById('p1-hand'); 
     const topHandDiv = document.getElementById('p2-hand'); 
     const bottomInfo = document.getElementById('p1-info');
     const topInfo = document.getElementById('p2-info');
+    
+    // === GESTIONE AREE GIOCATORI (NUOVO) ===
+    const myArea = document.getElementById('area-p1');
+    const oppArea = document.getElementById('area-p2');
 
-    // --- TESTI E TURNO ---
-    // Usiamo i dati pre-masticati dal server!
-    bottomInfo.innerText = `${state.myName} - Prese: ${state.myStats.capturedCount} (Scope: ${state.myStats.scopes}) | PUNTI: ${state.myStats.totalScore}`;
-    topInfo.innerText = `${state.oppName} - Prese: ${state.oppStats.capturedCount} (Scope: ${state.oppStats.scopes}) | PUNTI: ${state.oppStats.totalScore}`;
+    // --- AGGIORNA INFO GIOCATORI ---
+    bottomInfo.innerText = `${state.myName} | Prese: ${state.myStats.capturedCount} | Scope: ${state.myStats.scopes} | PUNTI: ${state.myStats.totalScore}`;
+    topInfo.innerText = `${state.oppName} | Prese: ${state.oppStats.capturedCount} | Scope: ${state.oppStats.scopes} | PUNTI: ${state.oppStats.totalScore}`;
 
+    // --- EVIDENZIA IL TURNO ATTIVO (NUOVO) ---
     if (state.turn === state.myPlayerIndex) {
-        bottomInfo.classList.add('active-turn'); topInfo.classList.remove('active-turn');
+        myArea.classList.add('active-turn');
+        oppArea.classList.remove('active-turn');
     } else {
-        bottomInfo.classList.remove('active-turn'); topInfo.classList.add('active-turn');
+        oppArea.classList.add('active-turn');
+        myArea.classList.remove('active-turn');
     }
 
     // --- DISEGNO TAVOLO ---
@@ -108,13 +115,16 @@ function renderGame(state) {
     bottomHandDiv.innerHTML = "";
     topHandDiv.innerHTML = "";
     
-    // Il server ci ha già diviso perfettamente le mie carte e quelle dell'avversario!
     activateHand(topHandDiv, state.oppHandData, false); 
     activateHand(bottomHandDiv, state.myHandData, state.turn === state.myPlayerIndex); 
 
     // --- AGGIORNAMENTO MESSAGGI E ULTIMA CARTA ---
     if (state.message) document.getElementById('status-msg').innerText = state.message;
-    if (state.message && state.message.includes("PARTITA FINITA")) alert(state.message);
+    if (state.message && state.message.includes("PARTITA FINITA")) {
+        setTimeout(() => {
+            alert("🎉 " + state.message);
+        }, 500);
+    }
     
     const lastPlayedContainer = document.getElementById('last-played-container');
     const lastCardVisual = document.getElementById('last-card-visual');
@@ -122,12 +132,13 @@ function renderGame(state) {
     if (state.lastPlayedCard) {
         lastCardVisual.innerHTML = "";
         const cardDiv = createCard(state.lastPlayedCard);
-        cardDiv.style.width = "40px"; 
-        cardDiv.style.height = "60px";
+        cardDiv.style.width = "50px"; 
+        cardDiv.style.height = "73px";
         cardDiv.style.margin = "0";
-        cardDiv.style.boxShadow = "none";
+        cardDiv.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
         cardDiv.style.cursor = "default";
         cardDiv.style.transform = "none";
+        cardDiv.style.borderRadius = "6px";
         
         lastCardVisual.appendChild(cardDiv);
         lastPlayedContainer.style.display = "flex";
@@ -178,7 +189,8 @@ function renderGame(state) {
         if (modal) modal.style.display = 'none';
     }
 }
-// Funzione helper per disegnare una mano e renderla cliccabile
+
+// === ATTIVAZIONE MANO (INVARIATO) ===
 function activateHand(containerDiv, handData, isMyTurn) {
     containerDiv.innerHTML = ""; 
     
