@@ -5,19 +5,19 @@ let gameMode = "";
 let selectedTableCards = []; 
 let isTransitioning = false; 
 
-// 1. Gestione della carta nascosta (Dorso)
 const createCard = (card) => {
     const div = document.createElement('div');
     div.className = 'card';
     
     if (card.hidden) {
+        div.setAttribute('data-hidden', 'true');
         div.style.backgroundImage = `url('/cards_franc/back-red.png')`;
         div.style.backgroundSize = 'cover';
         div.style.cursor = 'default';
         return div;
     }
 
-    const fileName = `${card.suit.toUpperCase()}_${card.value}.png`;
+    const fileName = `${card.suit}_${card.value}.png`;
     div.style.backgroundImage = `url('/cards_franc/${fileName}')`;
     div.style.backgroundSize = 'contain';
     div.style.backgroundRepeat = 'no-repeat';
@@ -28,6 +28,7 @@ const createCard = (card) => {
 
 let selectedMode = "";
 
+// FIX: Funzioni devono essere globali (senza const)
 function selectMode(mode) {
     selectedMode = mode;
     document.getElementById('step-1-mode').style.display = 'none';
@@ -37,10 +38,15 @@ function selectMode(mode) {
 function joinGame(length) {
     let pName = document.getElementById('player-name').value.trim() || "Ospite";
     document.getElementById('lobby-screen').style.display = 'none';
-    document.getElementById('game-screen').style.display = 'block';
+    document.getElementById('game-screen').style.display = 'flex';
     gameMode = selectedMode;
     
     socket.emit('joinGame', { gameType: 'cirulla', mode: selectedMode, playerName: pName, gameLength: length });
+}
+
+function requestNextRound() {
+    document.getElementById('scoreboard-modal').style.display = 'none'; 
+    socket.emit('nextRound', { roomName: myRoom }); 
 }
 
 socket.on('gameJoined', (data) => {
@@ -75,26 +81,27 @@ function toggleTableCard(index, divElement) {
     }
 }
 
-// IL REGISTA GRAFICO DELLA PARTITA
 function renderGame(state) {
     const tableDiv = document.getElementById('table-cards');
     const bottomHandDiv = document.getElementById('p1-hand'); 
     const topHandDiv = document.getElementById('p2-hand'); 
     const bottomInfo = document.getElementById('p1-info');
     const topInfo = document.getElementById('p2-info');
+    
+    const myArea = document.getElementById('area-p1');
+    const oppArea = document.getElementById('area-p2');
 
-    // --- TESTI E TURNO ---
-    // Usiamo i dati pre-masticati dal server!
-    bottomInfo.innerText = `${state.myName} - Prese: ${state.myStats.capturedCount} (Scope: ${state.myStats.scopes}) | PUNTI: ${state.myStats.totalScore}`;
-    topInfo.innerText = `${state.oppName} - Prese: ${state.oppStats.capturedCount} (Scope: ${state.oppStats.scopes}) | PUNTI: ${state.oppStats.totalScore}`;
+    bottomInfo.innerText = `${state.myName} | Prese: ${state.myStats.capturedCount} | Scope: ${state.myStats.scopes} | PUNTI: ${state.myStats.totalScore}`;
+    topInfo.innerText = `${state.oppName} | Prese: ${state.oppStats.capturedCount} | Scope: ${state.oppStats.scopes} | PUNTI: ${state.oppStats.totalScore}`;
 
     if (state.turn === state.myPlayerIndex) {
-        bottomInfo.classList.add('active-turn'); topInfo.classList.remove('active-turn');
+        myArea.classList.add('active-turn');
+        oppArea.classList.remove('active-turn');
     } else {
-        bottomInfo.classList.remove('active-turn'); topInfo.classList.add('active-turn');
+        oppArea.classList.add('active-turn');
+        myArea.classList.remove('active-turn');
     }
 
-    // --- DISEGNO TAVOLO ---
     tableDiv.innerHTML = "";
     selectedTableCards = [];
     state.table.forEach((card, index) => {
@@ -104,17 +111,16 @@ function renderGame(state) {
         tableDiv.appendChild(cardDiv);
     });
 
-    // --- DISEGNO DELLE MANI ---
     bottomHandDiv.innerHTML = "";
     topHandDiv.innerHTML = "";
     
-    // Il server ci ha già diviso perfettamente le mie carte e quelle dell'avversario!
     activateHand(topHandDiv, state.oppHandData, false); 
     activateHand(bottomHandDiv, state.myHandData, state.turn === state.myPlayerIndex); 
 
-    // --- AGGIORNAMENTO MESSAGGI E ULTIMA CARTA ---
     if (state.message) document.getElementById('status-msg').innerText = state.message;
-    if (state.message && state.message.includes("PARTITA FINITA")) alert(state.message);
+    if (state.message && state.message.includes("PARTITA FINITA")) {
+        setTimeout(() => alert(state.message), 500);
+    }
     
     const lastPlayedContainer = document.getElementById('last-played-container');
     const lastCardVisual = document.getElementById('last-card-visual');
@@ -122,12 +128,13 @@ function renderGame(state) {
     if (state.lastPlayedCard) {
         lastCardVisual.innerHTML = "";
         const cardDiv = createCard(state.lastPlayedCard);
-        cardDiv.style.width = "40px"; 
-        cardDiv.style.height = "60px";
+        cardDiv.style.width = "48px"; 
+        cardDiv.style.height = "70px";
         cardDiv.style.margin = "0";
-        cardDiv.style.boxShadow = "none";
+        cardDiv.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
         cardDiv.style.cursor = "default";
         cardDiv.style.transform = "none";
+        cardDiv.style.borderRadius = "5px";
         
         lastCardVisual.appendChild(cardDiv);
         lastPlayedContainer.style.display = "flex";
@@ -135,14 +142,12 @@ function renderGame(state) {
         lastPlayedContainer.style.display = "none";
     }
 
-    // --- TABELLONE FINE MANO ---
     if (state.isMancheFinished && state.lastRoundStats) {
         let myRoundStats = state.myPlayerIndex === 0 ? state.lastRoundStats.p1 : state.lastRoundStats.p2;
         let oppRoundStats = state.myPlayerIndex === 0 ? state.lastRoundStats.p2 : state.lastRoundStats.p1;
         let myTotalScore = state.myStats.totalScore;
         let oppTotalScore = state.oppStats.totalScore;
 
-        // Compila TU
         document.getElementById('my-carte-val').innerText = myRoundStats.carteCount;
         document.getElementById('my-carte-pts').innerText = myRoundStats.ptCarte;
         document.getElementById('my-denari-val').innerText = myRoundStats.denariCount;
@@ -157,7 +162,6 @@ function renderGame(state) {
         document.getElementById('my-bonus-pts').innerHTML = myRoundStats.bonusPts > 0 ? `<span style="color:#2ecc71;">${myRoundStats.bonusPts}</span>` : "0";
         document.getElementById('my-totale-modal').innerText = myTotalScore;
 
-        // Compila AVVERSARIO
         document.getElementById('opp-carte-val').innerText = oppRoundStats.carteCount;
         document.getElementById('opp-carte-pts').innerText = oppRoundStats.ptCarte;
         document.getElementById('opp-denari-val').innerText = oppRoundStats.denariCount;
@@ -178,7 +182,7 @@ function renderGame(state) {
         if (modal) modal.style.display = 'none';
     }
 }
-// Funzione helper per disegnare una mano e renderla cliccabile
+
 function activateHand(containerDiv, handData, isMyTurn) {
     containerDiv.innerHTML = ""; 
     
@@ -208,9 +212,4 @@ function playCard(index) {
         cardIndex: index,
         selectedTableIndices: selectedTableCards 
     });
-}
-
-function requestNextRound() {
-    document.getElementById('scoreboard-modal').style.display = 'none'; 
-    socket.emit('nextRound', { roomName: myRoom }); 
 }

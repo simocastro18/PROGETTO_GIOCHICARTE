@@ -8,9 +8,22 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static('public'));
+app.use(express.static(__dirname + '/public'));
+
+// --- MODALITÀ 1: SVILUPPO LOCALE ---
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/public/gameroom.html');
+});
+
+// --- MODALITÀ 2: RASPBERRY ---
+/*
 app.get('/gameroom', (req, res) => {
     res.sendFile(__dirname + '/public/gameroom.html');
+});
+*/
+
+server.listen(3000, () => {
+    console.log("Server avviato su porta 3000");
 });
 
 // Stato del server
@@ -271,7 +284,3 @@ function sendGameStateToPlayers(roomName) {
         io.to(player.socketId).emit('updateTable', personalizedState);
     });
 }
-
-server.listen(3000, () => {
-    console.log('Server attivo su http://localhost:3000');
-});
