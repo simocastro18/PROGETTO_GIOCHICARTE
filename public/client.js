@@ -5,7 +5,6 @@ let gameMode = "";
 let selectedTableCards = []; 
 let isTransitioning = false; 
 
-// === CREAZIONE CARTA (COMPATIBILE CON NUOVO DESIGN) ===
 const createCard = (card) => {
     const div = document.createElement('div');
     div.className = 'card';
@@ -29,6 +28,7 @@ const createCard = (card) => {
 
 let selectedMode = "";
 
+// FIX: Funzioni devono essere globali (senza const)
 function selectMode(mode) {
     selectedMode = mode;
     document.getElementById('step-1-mode').style.display = 'none';
@@ -38,10 +38,15 @@ function selectMode(mode) {
 function joinGame(length) {
     let pName = document.getElementById('player-name').value.trim() || "Ospite";
     document.getElementById('lobby-screen').style.display = 'none';
-    document.getElementById('game-screen').style.display = 'flex'; // CAMBIATO: flex invece di block
+    document.getElementById('game-screen').style.display = 'flex';
     gameMode = selectedMode;
     
     socket.emit('joinGame', { gameType: 'cirulla', mode: selectedMode, playerName: pName, gameLength: length });
+}
+
+function requestNextRound() {
+    document.getElementById('scoreboard-modal').style.display = 'none'; 
+    socket.emit('nextRound', { roomName: myRoom }); 
 }
 
 socket.on('gameJoined', (data) => {
@@ -76,7 +81,6 @@ function toggleTableCard(index, divElement) {
     }
 }
 
-// === RENDERING PRINCIPALE (AGGIORNATO PER NUOVO DESIGN) ===
 function renderGame(state) {
     const tableDiv = document.getElementById('table-cards');
     const bottomHandDiv = document.getElementById('p1-hand'); 
@@ -84,15 +88,12 @@ function renderGame(state) {
     const bottomInfo = document.getElementById('p1-info');
     const topInfo = document.getElementById('p2-info');
     
-    // === GESTIONE AREE GIOCATORI (NUOVO) ===
     const myArea = document.getElementById('area-p1');
     const oppArea = document.getElementById('area-p2');
 
-    // --- AGGIORNA INFO GIOCATORI ---
     bottomInfo.innerText = `${state.myName} | Prese: ${state.myStats.capturedCount} | Scope: ${state.myStats.scopes} | PUNTI: ${state.myStats.totalScore}`;
     topInfo.innerText = `${state.oppName} | Prese: ${state.oppStats.capturedCount} | Scope: ${state.oppStats.scopes} | PUNTI: ${state.oppStats.totalScore}`;
 
-    // --- EVIDENZIA IL TURNO ATTIVO (NUOVO) ---
     if (state.turn === state.myPlayerIndex) {
         myArea.classList.add('active-turn');
         oppArea.classList.remove('active-turn');
@@ -101,7 +102,6 @@ function renderGame(state) {
         myArea.classList.remove('active-turn');
     }
 
-    // --- DISEGNO TAVOLO ---
     tableDiv.innerHTML = "";
     selectedTableCards = [];
     state.table.forEach((card, index) => {
@@ -111,19 +111,15 @@ function renderGame(state) {
         tableDiv.appendChild(cardDiv);
     });
 
-    // --- DISEGNO DELLE MANI ---
     bottomHandDiv.innerHTML = "";
     topHandDiv.innerHTML = "";
     
     activateHand(topHandDiv, state.oppHandData, false); 
     activateHand(bottomHandDiv, state.myHandData, state.turn === state.myPlayerIndex); 
 
-    // --- AGGIORNAMENTO MESSAGGI E ULTIMA CARTA ---
     if (state.message) document.getElementById('status-msg').innerText = state.message;
     if (state.message && state.message.includes("PARTITA FINITA")) {
-        setTimeout(() => {
-            alert("🎉 " + state.message);
-        }, 500);
+        setTimeout(() => alert(state.message), 500);
     }
     
     const lastPlayedContainer = document.getElementById('last-played-container');
@@ -132,13 +128,13 @@ function renderGame(state) {
     if (state.lastPlayedCard) {
         lastCardVisual.innerHTML = "";
         const cardDiv = createCard(state.lastPlayedCard);
-        cardDiv.style.width = "50px"; 
-        cardDiv.style.height = "73px";
+        cardDiv.style.width = "48px"; 
+        cardDiv.style.height = "70px";
         cardDiv.style.margin = "0";
-        cardDiv.style.boxShadow = "0 2px 8px rgba(0,0,0,0.3)";
+        cardDiv.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
         cardDiv.style.cursor = "default";
         cardDiv.style.transform = "none";
-        cardDiv.style.borderRadius = "6px";
+        cardDiv.style.borderRadius = "5px";
         
         lastCardVisual.appendChild(cardDiv);
         lastPlayedContainer.style.display = "flex";
@@ -146,14 +142,12 @@ function renderGame(state) {
         lastPlayedContainer.style.display = "none";
     }
 
-    // --- TABELLONE FINE MANO ---
     if (state.isMancheFinished && state.lastRoundStats) {
         let myRoundStats = state.myPlayerIndex === 0 ? state.lastRoundStats.p1 : state.lastRoundStats.p2;
         let oppRoundStats = state.myPlayerIndex === 0 ? state.lastRoundStats.p2 : state.lastRoundStats.p1;
         let myTotalScore = state.myStats.totalScore;
         let oppTotalScore = state.oppStats.totalScore;
 
-        // Compila TU
         document.getElementById('my-carte-val').innerText = myRoundStats.carteCount;
         document.getElementById('my-carte-pts').innerText = myRoundStats.ptCarte;
         document.getElementById('my-denari-val').innerText = myRoundStats.denariCount;
@@ -168,7 +162,6 @@ function renderGame(state) {
         document.getElementById('my-bonus-pts').innerHTML = myRoundStats.bonusPts > 0 ? `<span style="color:#2ecc71;">${myRoundStats.bonusPts}</span>` : "0";
         document.getElementById('my-totale-modal').innerText = myTotalScore;
 
-        // Compila AVVERSARIO
         document.getElementById('opp-carte-val').innerText = oppRoundStats.carteCount;
         document.getElementById('opp-carte-pts').innerText = oppRoundStats.ptCarte;
         document.getElementById('opp-denari-val').innerText = oppRoundStats.denariCount;
@@ -190,7 +183,6 @@ function renderGame(state) {
     }
 }
 
-// === ATTIVAZIONE MANO (INVARIATO) ===
 function activateHand(containerDiv, handData, isMyTurn) {
     containerDiv.innerHTML = ""; 
     
@@ -220,9 +212,4 @@ function playCard(index) {
         cardIndex: index,
         selectedTableIndices: selectedTableCards 
     });
-}
-
-function requestNextRound() {
-    document.getElementById('scoreboard-modal').style.display = 'none'; 
-    socket.emit('nextRound', { roomName: myRoom }); 
 }

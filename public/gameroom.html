@@ -12,8 +12,8 @@
         }
 
         body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
             color: #e8e8e8;
             user-select: none;
             overflow-x: hidden;
@@ -31,67 +31,66 @@
         }
 
         #lobby-screen h1 {
-            font-size: 4em;
+            font-size: 3.5em;
             color: #ffd700;
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-            margin-bottom: 40px;
-            letter-spacing: 5px;
+            margin-bottom: 50px;
+            letter-spacing: 8px;
+            font-weight: bold;
         }
 
         #player-name {
-            padding: 18px 30px;
-            font-size: 18px;
-            border-radius: 12px;
+            padding: 16px 25px;
+            font-size: 17px;
+            border-radius: 10px;
             border: 2px solid #ffd700;
             background: rgba(255, 255, 255, 0.1);
             color: white;
             text-align: center;
             width: 90%;
-            max-width: 400px;
+            max-width: 350px;
             margin-bottom: 40px;
-            transition: all 0.3s;
+            transition: border-color 0.3s;
         }
 
         #player-name:focus {
             outline: none;
             border-color: #27ae60;
-            background: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 0 20px rgba(39, 174, 96, 0.3);
         }
 
         .mode-btn, .length-btn {
-            padding: 20px 40px;
-            margin: 12px;
-            font-size: 20px;
+            padding: 18px 35px;
+            margin: 10px;
+            font-size: 18px;
             font-weight: bold;
             cursor: pointer;
             border: none;
-            border-radius: 15px;
+            border-radius: 12px;
             color: white;
-            transition: all 0.3s;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .mode-btn:hover, .length-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
         }
 
         .mode-btn:active, .length-btn:active {
-            transform: translateY(-1px);
+            transform: translateY(0);
         }
 
-        .btn-ai { background: linear-gradient(135deg, #f39c12, #e67e22); }
-        .btn-online2 { background: linear-gradient(135deg, #3498db, #2980b9); }
-        .btn-online4 { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-        .btn-veloce { background: linear-gradient(135deg, #2ecc71, #27ae60); }
-        .btn-51 { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+        .btn-ai { background: #f39c12; }
+        .btn-online2 { background: #3498db; }
+        .btn-online4 { background: #e74c3c; }
+        .btn-veloce { background: #2ecc71; }
+        .btn-51 { background: #9b59b6; }
 
         #step-2-length h2 {
             color: #ffd700;
             margin-bottom: 30px;
-            font-size: 1.8em;
+            font-size: 1.6em;
         }
 
         /* ========== GAME SCREEN ========== */
@@ -99,8 +98,8 @@
             min-height: 100vh;
             display: none;
             flex-direction: column;
-            padding: 20px;
-            max-width: 1400px;
+            padding: 15px;
+            max-width: 1300px;
             margin: 0 auto;
         }
 
@@ -109,17 +108,16 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             background: rgba(0,0,0,0.3);
-            padding: 20px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 12px;
         }
 
         #status-msg {
-            font-size: 1.5em;
+            font-size: 1.3em;
             color: #ffd700;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             text-align: center;
         }
 
@@ -128,70 +126,65 @@
             align-items: center;
             justify-content: center;
             background: rgba(39, 174, 96, 0.2);
-            padding: 10px 20px;
-            border-radius: 10px;
+            padding: 8px 15px;
+            border-radius: 8px;
             border: 2px solid #27ae60;
-            margin-top: 10px;
+            margin-top: 8px;
         }
 
         #last-played-container span {
-            font-size: 14px;
+            font-size: 13px;
             color: #2ecc71;
-            margin-right: 15px;
+            margin-right: 12px;
             text-transform: uppercase;
             font-weight: bold;
         }
 
         /* Player Areas */
         .player-area {
-            background: rgba(0,0,0,0.3);
-            padding: 20px;
-            margin: 15px 0;
-            border-radius: 15px;
+            background: rgba(0,0,0,0.25);
+            padding: 15px;
+            margin: 12px 0;
+            border-radius: 12px;
             border: 2px solid transparent;
-            transition: all 0.4s;
-            backdrop-filter: blur(5px);
+            transition: border-color 0.3s;
         }
 
         .player-area.active-turn {
             border-color: #ffd700;
-            background: rgba(255, 215, 0, 0.1);
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            background: rgba(255, 215, 0, 0.08);
         }
 
         .player-info {
-            font-size: 1.2em;
+            font-size: 1.1em;
             color: #e8e8e8;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             text-align: center;
             font-weight: bold;
         }
 
         .active-turn .player-info {
             color: #ffd700;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-            font-size: 1.3em;
+            font-size: 1.2em;
         }
 
         /* Table Area */
         .table-area {
-            background: linear-gradient(135deg, #27ae60, #229954);
-            padding: 30px;
-            border-radius: 20px;
-            margin: 20px 0;
-            min-height: 180px;
-            box-shadow: 
-                inset 0 0 30px rgba(0,0,0,0.3),
-                0 10px 40px rgba(0,0,0,0.4);
-            border: 5px solid #1e8449;
+            background: #27ae60;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 15px 0;
+            min-height: 160px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+            border: 4px solid #1e8449;
         }
 
         .table-area h3 {
-            color: rgba(255,255,255,0.9);
+            color: white;
             text-align: center;
-            margin-bottom: 20px;
-            font-size: 1.4em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
         }
 
         #table-cards {
@@ -199,7 +192,7 @@
             justify-content: center;
             align-items: center;
             flex-wrap: wrap;
-            min-height: 120px;
+            min-height: 110px;
         }
 
         /* Hand Areas */
@@ -208,25 +201,23 @@
             justify-content: center;
             align-items: center;
             flex-wrap: wrap;
-            min-height: 140px;
+            min-height: 130px;
         }
 
         /* ========== CARDS STYLING ========== */
         .card {
-            width: 85px;
-            height: 125px;
-            margin: 10px;
+            width: 80px;
+            height: 117px;
+            margin: 8px;
             display: inline-block;
-            border-radius: 10px;
+            border-radius: 8px;
             background-color: white;
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
             position: relative;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 
-                0 4px 8px rgba(0,0,0,0.3),
-                0 0 0 1px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
             cursor: default;
         }
 
@@ -235,28 +226,23 @@
         }
 
         .card.playable:hover {
-            transform: translateY(-15px) scale(1.05);
-            box-shadow: 
-                0 10px 25px rgba(0,0,0,0.4),
-                0 0 20px rgba(255, 215, 0, 0.4);
+            transform: translateY(-12px) scale(1.03);
+            box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4);
             z-index: 100;
         }
 
         .table-card {
             cursor: pointer;
-            transition: all 0.2s;
+            transition: transform 0.15s;
         }
 
         .table-card:hover {
-            transform: scale(1.1);
+            transform: scale(1.08);
         }
 
         .table-card.selected {
-            transform: scale(1.15) translateY(-5px);
-            box-shadow: 
-                0 0 0 4px #e74c3c,
-                0 8px 20px rgba(231, 76, 60, 0.5);
-            filter: brightness(1.1);
+            transform: scale(1.12) translateY(-4px);
+            box-shadow: 0 0 0 3px #e74c3c;
         }
 
         /* Hidden Cards */
@@ -268,7 +254,7 @@
 
         .card[data-hidden="true"]:hover {
             transform: none !important;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3) !important;
         }
 
         /* ========== SCOREBOARD MODAL ========== */
@@ -278,63 +264,43 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.88);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 2000;
-            backdrop-filter: blur(10px);
-            animation: fadeIn 0.3s;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
         }
 
         .modal-content {
-            background: linear-gradient(135deg, #2c3e50, #34495e);
-            padding: 40px;
-            border-radius: 20px;
+            background: #2c3e50;
+            padding: 35px;
+            border-radius: 15px;
             text-align: center;
-            max-width: 700px;
-            width: 95%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            max-width: 650px;
+            width: 92%;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.7);
             border: 3px solid #ffd700;
-            animation: slideUp 0.4s;
-        }
-
-        @keyframes slideUp {
-            from { 
-                opacity: 0;
-                transform: translateY(50px);
-            }
-            to { 
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
 
         .modal-content h2 {
             color: #ffd700;
-            font-size: 2.2em;
-            margin-bottom: 30px;
+            font-size: 2em;
+            margin-bottom: 25px;
             text-transform: uppercase;
-            letter-spacing: 3px;
-            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            letter-spacing: 2px;
         }
 
         .scoreboard-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin: 30px 0;
+            gap: 18px;
+            margin: 25px 0;
         }
 
         .score-col {
-            background: rgba(0,0,0,0.4);
-            padding: 25px;
-            border-radius: 15px;
+            background: rgba(0,0,0,0.35);
+            padding: 20px;
+            border-radius: 12px;
             border: 2px solid rgba(255,255,255,0.1);
         }
 
@@ -345,20 +311,20 @@
 
         .score-col h3 {
             color: #ffd700;
-            font-size: 1.5em;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
+            font-size: 1.4em;
+            margin-bottom: 18px;
+            padding-bottom: 8px;
             border-bottom: 2px solid rgba(255, 215, 0, 0.3);
         }
 
         .score-row {
             display: grid;
             grid-template-columns: 2fr 1fr 1fr;
-            gap: 10px;
-            margin: 12px 0;
-            font-size: 16px;
+            gap: 8px;
+            margin: 10px 0;
+            font-size: 15px;
             align-items: center;
-            padding: 8px 0;
+            padding: 6px 0;
         }
 
         .score-row span:first-child {
@@ -372,20 +338,20 @@
         }
 
         .header-row {
-            font-size: 13px;
+            font-size: 12px;
             text-transform: uppercase;
             color: #95a5a6;
             border-bottom: 1px solid rgba(255,255,255,0.2);
-            padding-bottom: 8px;
-            margin-bottom: 15px;
+            padding-bottom: 6px;
+            margin-bottom: 12px;
             font-weight: bold;
         }
 
         .total-row {
-            font-size: 1.5em;
+            font-size: 1.4em;
             color: #2ecc71;
-            margin-top: 20px;
-            padding-top: 15px;
+            margin-top: 18px;
+            padding-top: 12px;
             border-top: 2px solid rgba(46, 204, 113, 0.3);
             font-weight: bold;
         }
@@ -396,24 +362,22 @@
         }
 
         .next-round-btn {
-            background: linear-gradient(135deg, #27ae60, #229954);
+            background: #27ae60;
             color: white;
             border: none;
-            padding: 18px 50px;
-            font-size: 22px;
+            padding: 16px 45px;
+            font-size: 20px;
             font-weight: bold;
-            border-radius: 12px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 5px 20px rgba(39, 174, 96, 0.4);
+            transition: all 0.2s;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
         }
 
         .next-round-btn:hover {
-            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            background: #2ecc71;
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(46, 204, 113, 0.5);
         }
 
         .next-round-btn:active {
@@ -423,18 +387,19 @@
         /* ========== RESPONSIVE ========== */
         @media (max-width: 768px) {
             #lobby-screen h1 {
-                font-size: 2.5em;
+                font-size: 2.2em;
+                letter-spacing: 3px;
             }
 
             .card {
-                width: 60px;
-                height: 88px;
-                margin: 6px;
+                width: 58px;
+                height: 85px;
+                margin: 5px;
             }
 
             .mode-btn, .length-btn {
-                padding: 15px 30px;
-                font-size: 16px;
+                padding: 14px 25px;
+                font-size: 15px;
             }
 
             .scoreboard-grid {
@@ -442,15 +407,15 @@
             }
 
             .modal-content {
-                padding: 25px;
+                padding: 22px;
             }
 
             .player-info {
-                font-size: 0.9em;
+                font-size: 0.85em;
             }
 
             .table-area {
-                padding: 20px;
+                padding: 18px;
             }
         }
     </style>
@@ -459,28 +424,28 @@
 
     <!-- ========== LOBBY SCREEN ========== -->
     <div id="lobby-screen">
-        <h1>🎴 CIRULLA 🎴</h1>
+        <h1>CIRULLA</h1>
         <input type="text" id="player-name" placeholder="Inserisci il tuo nome..." maxlength="20">
 
         <div id="step-1-mode">
             <button class="mode-btn btn-ai" onclick="selectMode('bot')">
-                🤖 Gioca contro AI
+                Gioca contro AI
             </button>
             <button class="mode-btn btn-online2" onclick="selectMode('online2')">
-                👥 Multiplayer 2
+                Multiplayer 2 Giocatori
             </button>
             <button class="mode-btn btn-online4" onclick="selectMode('online4')">
-                👥👥 Multiplayer 4
+                Multiplayer 4 Giocatori
             </button>
         </div>
 
         <div id="step-2-length" style="display:none;">
-            <h2>⏱️ Scegli la durata:</h2>
+            <h2>Scegli la durata:</h2>
             <button class="length-btn btn-veloce" onclick="joinGame('veloce')">
-                ⚡ Partita Veloce
+                Partita Veloce (1 Mano)
             </button>
             <button class="length-btn btn-51" onclick="joinGame('51')">
-                🏆 Partita ai 51
+                Partita ai 51 Punti
             </button>
         </div>
     </div>
@@ -502,7 +467,7 @@
         </div>
 
         <div class="table-area">
-            <h3>🃏 TAVOLO 🃏</h3>
+            <h3>TAVOLO</h3>
             <div id="table-cards"></div>
         </div>
 
@@ -515,7 +480,7 @@
     <!-- ========== SCOREBOARD MODAL ========== -->
     <div id="scoreboard-modal">
         <div class="modal-content">
-            <h2>📊 Fine Mano 📊</h2>
+            <h2>Fine della Mano</h2>
             
             <div class="scoreboard-grid">
                 <div class="score-col">
@@ -552,7 +517,7 @@
             </div>
 
             <button class="next-round-btn" onclick="requestNextRound()">
-                ▶ Prossima Mano
+                Prossima Mano
             </button>
         </div>
     </div>
